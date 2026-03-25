@@ -1,0 +1,8 @@
+Django
+celery
+redis
+requests
+python-decouple
+pandas
+openpyxl
+mercadopago

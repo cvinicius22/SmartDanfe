@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="payment-pending">
+    <div class="payment-icon"><i class="fas fa-clock"></i></div>
+    <h1>Pagamento pendente</h1>
+    <p>Seu pagamento está sendo processado. Assim que for confirmado, seu acesso será liberado.</p>
+    <a href="{% url 'dashboard' %}" class="btn-primary">Voltar ao início</a>
+</div>
+<style>
+    .payment-pending {
+        text-align: center;
+        padding: 4rem;
+        max-width: 500px;
+        margin: 4rem auto;
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow-lg);
+    }
+    .payment-icon i {
+        font-size: 5rem;
+        color: #f59e0b;
+        margin-bottom: 1rem;
+    }
+    .payment-pending h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .payment-pending p {
+        color: var(--gray);
+        margin-bottom: 2rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #06b6d4);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 40px;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

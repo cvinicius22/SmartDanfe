@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="payment-failure">
+    <div class="payment-icon"><i class="fas fa-times-circle"></i></div>
+    <h1>Falha no pagamento</h1>
+    <p>Ocorreu um problema com o seu pagamento. Tente novamente ou utilize outro método.</p>
+    <a href="{% url 'plans' %}" class="btn-primary">Voltar para os planos</a>
+</div>
+<style>
+    .payment-failure {
+        text-align: center;
+        padding: 4rem;
+        max-width: 500px;
+        margin: 4rem auto;
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow-lg);
+    }
+    .payment-icon i {
+        font-size: 5rem;
+        color: #ef4444;
+        margin-bottom: 1rem;
+    }
+    .payment-failure h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .payment-failure p {
+        color: var(--gray);
+        margin-bottom: 2rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #06b6d4);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 40px;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

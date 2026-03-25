@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+    <div style="background: white; border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 440px;">
+        <h1 style="text-align: center; margin-bottom: 2rem;">Criar conta</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #0ea5e9, #06b6d4); color: white; border: none; border-radius: 40px; cursor: pointer;">Registrar e continuar</button>
+        </form>
+        <p style="text-align: center; margin-top: 1rem;">
+            Já tem conta? <a href="{% url 'login' %}">Faça login</a>
+        </p>
+    </div>
+</div>
+<style>
+    input {
+        width: 100%;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,32 @@
+# Ambiente virtual
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# Banco de dados SQLite (se estiver usando)
+*.sqlite3
+db.sqlite3
+
+# Arquivos de migração (opcional – se quiser manter as migrações, remova a linha abaixo)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Arquivos de ambiente (variáveis sensíveis)
+.env
+
+# Django static files (quando coletados)
+staticfiles/
+static/
+
+# IDE / editores
+.vscode/
+.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db

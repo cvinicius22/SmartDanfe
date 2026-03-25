@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="payment-success">
+    <div class="payment-icon"><i class="fas fa-check-circle"></i></div>
+    <h1>Pagamento aprovado!</h1>
+    <p>Seu plano foi ativado. Você já pode utilizar todas as funcionalidades do SmartDanfe.</p>
+    <a href="{% url 'dashboard' %}" class="btn-primary">Ir para o Dashboard</a>
+</div>
+<style>
+    .payment-success {
+        text-align: center;
+        padding: 4rem;
+        max-width: 500px;
+        margin: 4rem auto;
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow-lg);
+    }
+    .payment-icon i {
+        font-size: 5rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+    .payment-success h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .payment-success p {
+        color: var(--gray);
+        margin-bottom: 2rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #06b6d4);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 40px;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

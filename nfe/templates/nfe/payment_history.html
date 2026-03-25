@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Histórico de Pagamentos</h1>
+
+    <!-- Informações da assinatura atual -->
+    {% if active_subscription %}
+        <div class="current-subscription">
+            <h2>Assinatura Atual</h2>
+            <div class="subscription-card">
+                <div class="subscription-plan">
+                    <strong>Plano:</strong> {{ active_subscription.plan|capfirst }}
+                </div>
+                <div class="subscription-expiration">
+                    <strong>Expira em:</strong> {{ active_subscription.expiration_date|date:"d/m/Y" }}
+                </div>
+                <div class="subscription-status">
+                    <strong>Status:</strong>
+                    <span class="badge {% if active_subscription.status == 'Ativa' %}badge-success{% else %}badge-danger{% endif %}">
+                        {{ active_subscription.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="current-subscription">
+            <div class="subscription-card">
+                <p>Você não possui uma assinatura ativa.</p>
+                <a href="{% url 'home' %}" class="btn btn-primary">Ver planos</a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Histórico de pagamentos -->
+    <div class="payment-history">
+        <h2>Histórico de Pagamentos</h2>
+        {% if payments %}
+            <div class="payments-list">
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Plano</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Pagamento ID</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ payment.plan|capfirst }}</td>
+                            <td>R$ {{ payment.amount|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge {% if payment.status == 'APPROVED' %}badge-success{% elif payment.status == 'PENDING' %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ payment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if payment.payment_id %}
+                                    {{ payment.payment_id }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.status == 'PENDING' and payment.init_point %}
+                                    <a href="{% url 'checkout' %}?preference_id={{ payment.preference_id }}&plan={{ payment.plan }}" target="_blank" class="btn-small">Continuar</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-receipt"></i>
+                <p>Nenhum pagamento encontrado.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    h1, h2 {
+        margin-bottom: 1rem;
+        color: #0f172a;
+    }
+    .current-subscription {
+        margin-bottom: 2rem;
+    }
+    .subscription-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    .subscription-plan, .subscription-expiration, .subscription-status {
+        flex: 1;
+        font-size: 1rem;
+    }
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .badge-success {
+        background: #d1fae5;
+        color: #059669;
+    }
+    .badge-warning {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+    .badge-danger {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    .payments-list {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow-x: auto;
+    }
+    .payments-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .payments-table th, .payments-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .payments-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .payments-table tr:hover {
+        background: #f8fafc;
+    }
+    .btn-small {
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        display: inline-block;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+    }
+    @media (max-width: 768px) {
+        .subscription-card {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .payments-table th, .payments-table td {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}

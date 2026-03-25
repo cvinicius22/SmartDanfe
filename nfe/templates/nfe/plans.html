@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="plans-container">
+    <div class="plans-header">
+        <h1>SmartDanfe - Planos e Assinaturas</h1>
+        <p>Escolha o plano ideal para você e tenha acesso ilimitado ao nosso conversor de NF-e</p>
+    </div>
+    <div class="plans-grid">
+        <div class="plan-card">
+            <div class="plan-header">
+                <h2>Mensal</h2>
+                <div class="plan-price">R$ 0,01<span>/mês</span></div>
+            </div>
+            <div class="plan-features">
+                <ul>
+                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                </ul>
+            </div>
+            {% if user.is_authenticated %}
+                <a href="{% url 'checkout' %}?plan=mensal" class="btn-plan">Assinar Mensal</a>
+            {% else %}
+                <a href="{% url 'register' %}?plan=mensal" class="btn-plan">Assinar Mensal</a>
+            {% endif %}
+        </div>
+        <div class="plan-card featured">
+            <div class="plan-badge">MAIS VENDIDO</div>
+            <div class="plan-header">
+                <h2>Trimestral</h2>
+                <div class="plan-price">R$ 79,90<span>/trimestre</span></div>
+                <div class="plan-savings">Economia de 11%</div>
+            </div>
+            <div class="plan-features">
+                <ul>
+                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-star"></i> Suporte WhatsApp</li>
+                </ul>
+            </div>
+            {% if user.is_authenticated %}
+                <a href="{% url 'checkout' %}?plan=trimestral" class="btn-plan">Assinar Trimestral</a>
+            {% else %}
+                <a href="{% url 'register' %}?plan=trimestral" class="btn-plan">Assinar Trimestral</a>
+            {% endif %}
+        </div>
+        <div class="plan-card">
+            <div class="plan-header">
+                <h2>Anual</h2>
+                <div class="plan-price">R$ 299,90<span>/ano</span></div>
+                <div class="plan-savings">Economia de 16%</div>
+            </div>
+            <div class="plan-features">
+                <ul>
+                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-gem"></i> Acesso antecipado a novas features</li>
+                </ul>
+            </div>
+            {% if user.is_authenticated %}
+                <a href="{% url 'checkout' %}?plan=anual" class="btn-plan">Assinar Anual</a>
+            {% else %}
+                <a href="{% url 'register' %}?plan=anual" class="btn-plan">Assinar Anual</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="plans-footer">
+        <p>Os planos são recorrentes e podem ser cancelados a qualquer momento.</p>
+        <p>Após a confirmação do pagamento, seu acesso será liberado imediatamente.</p>
+    </div>
+</div>
+
+<style>
+    .plans-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+    .plans-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    .plans-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    .plans-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    .plan-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        position: relative;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    .plan-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    .plan-card.featured {
+        border: 2px solid #0ea5e9;
+        transform: scale(1.02);
+    }
+    .plan-badge {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        padding: 0.25rem 1rem;
+        border-radius: 40px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    .plan-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #0f172a;
+    }
+    .plan-price {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0ea5e9;
+        margin: 1rem 0;
+    }
+    .plan-price span {
+        font-size: 0.9rem;
+        font-weight: normal;
+        color: #64748b;
+    }
+    .plan-savings {
+        background: #e2e8f0;
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        color: #475569;
+        margin-top: 0.5rem;
+    }
+    .plan-features {
+        margin: 2rem 0;
+        text-align: left;
+    }
+    .plan-features ul {
+        list-style: none;
+        padding: 0;
+    }
+    .plan-features li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #475569;
+    }
+    .plan-features i {
+        width: 20px;
+        color: #10b981;
+    }
+    .btn-plan {
+        display: inline-block;
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 40px;
+        font-weight: 600;
+        text-decoration: none;
+        width: 100%;
+        transition: all 0.2s;
+    }
+    .btn-plan:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(14,165,233,0.3);
+    }
+    .plans-footer {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.875rem;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 2rem;
+    }
+    @media (max-width: 768px) {
+        .plans-grid {
+            grid-template-columns: 1fr;
+        }
+        .plan-card.featured {
+            transform: scale(1);
+        }
+    }
+</style>
+{% endblock %}

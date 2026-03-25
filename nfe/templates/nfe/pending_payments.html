@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Pagamentos Pendentes</h1>
+    {% if payments %}
+        <div class="payments-list">
+            {% for payment in payments %}
+                <div class="payment-card">
+                    <div class="payment-info">
+                        <strong>Plano:</strong> {{ payment.plan|capfirst }}<br>
+                        <strong>Valor:</strong> R$ {{ payment.amount|floatformat:2 }}<br>
+                        <strong>Data:</strong> {{ payment.created_at|date:"d/m/Y H:i" }}<br>
+                        <strong>Status:</strong> 
+                        <span class="badge badge-warning">{{ payment.get_status_display }}</span>
+                    </div>
+                    <div class="payment-actions">
+                        <a href="{% url 'checkout' %}?preference_id={{ payment.preference_id }}&plan={{ payment.plan }}" class="btn btn-primary">
+                            <i class="fas fa-credit-card"></i> Continuar Pagamento
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <p>Você não possui pagamentos pendentes.</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    h1 {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    .payment-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .payment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .payment-info {
+        flex: 1;
+        line-height: 1.6;
+    }
+    .payment-actions {
+        margin-left: 1rem;
+    }
+    .badge-warning {
+        background: #fef3c7;
+        color: #f59e0b;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 40px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(14,165,233,0.3);
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 1rem;
+        color: #64748b;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #10b981;
+    }
+    @media (max-width: 640px) {
+        .payment-card {
+            flex-direction: column;
+            text-align: center;
+        }
+        .payment-actions {
+            margin-left: 0;
+            margin-top: 1rem;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1>SmartDanfe</h1>
+        <p>Converta chaves de acesso em PDF e XML de forma rápida e segura.</p>
+        <div class="hero-buttons">
+            <a href="{% url 'plans' %}" class="btn-primary btn-large">Ver Planos</a>
+            <a href="{% url 'login' %}" class="btn-secondary btn-large">Já tenho conta</a>
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <h2>Funcionalidades</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <i class="fas fa-file-pdf"></i>
+            <h3>PDF e XML</h3>
+            <p>Baixe o DANFE em PDF e o XML original da nota fiscal.</p>
+        </div>
+        <div class="feature-card">
+            <i class="fas fa-chart-line"></i>
+            <h3>Relatórios em Excel</h3>
+            <p>Exporte dados extraídos do XML para planilhas detalhadas.</p>
+        </div>
+        <div class="feature-card">
+            <i class="fas fa-bolt"></i>
+            <h3>Processamento rápido</h3>
+            <p>Consultas em tempo real com atualização automática.</p>
+        </div>
+        <div class="feature-card">
+            <i class="fas fa-shield-alt"></i>
+            <h3>Segurança</h3>
+            <p>Seus dados são armazenados com criptografia e segurança.</p>
+        </div>
+    </div>
+</div>
+
+<div class="plans-section">
+    <h2>Escolha seu plano</h2>
+    <div class="plans-grid">
+        <!-- Plano Mensal -->
+        <div class="plan-card">
+            <div class="plan-header">
+                <h3>Mensal</h3>
+                <div class="plan-price">R$ 29,90<span>/mês</span></div>
+            </div>
+            <ul class="plan-features">
+                <li><i class="fas fa-check"></i> Conversão ilimitada de chaves</li>
+                <li><i class="fas fa-check"></i> Download de PDF e XML</li>
+                <li><i class="fas fa-check"></i> Relatórios em Excel</li>
+                <li><i class="fas fa-check"></i> Suporte por e-mail</li>
+            </ul>
+            <a href="{% url 'login' %}" class="btn-plan">Assinar Mensal</a>
+        </div>
+
+        <!-- Plano Trimestral (destaque) -->
+        <div class="plan-card featured">
+            <div class="plan-badge">MAIS VENDIDO</div>
+            <div class="plan-header">
+                <h3>Trimestral</h3>
+                <div class="plan-price">R$ 79,90<span>/trimestre</span></div>
+                <div class="plan-savings">Economia de 11%</div>
+            </div>
+            <ul class="plan-features">
+                <li><i class="fas fa-check"></i> Conversão ilimitada de chaves</li>
+                <li><i class="fas fa-check"></i> Download de PDF e XML</li>
+                <li><i class="fas fa-check"></i> Relatórios em Excel</li>
+                <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                <li><i class="fas fa-star"></i> Suporte por WhatsApp</li>
+            </ul>
+            <a href="{% url 'login' %}" class="btn-plan">Assinar Trimestral</a>
+        </div>
+
+        <!-- Plano Anual -->
+        <div class="plan-card">
+            <div class="plan-header">
+                <h3>Anual</h3>
+                <div class="plan-price">R$ 299,90<span>/ano</span></div>
+                <div class="plan-savings">Economia de 16%</div>
+            </div>
+            <ul class="plan-features">
+                <li><i class="fas fa-check"></i> Conversão ilimitada de chaves</li>
+                <li><i class="fas fa-check"></i> Download de PDF e XML</li>
+                <li><i class="fas fa-check"></i> Relatórios em Excel</li>
+                <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                <li><i class="fas fa-star"></i> Suporte por WhatsApp</li>
+                <li><i class="fas fa-gem"></i> Acesso antecipado a novas funcionalidades</li>
+            </ul>
+            <a href="{% url 'login' %}" class="btn-plan">Assinar Anual</a>
+        </div>
+    </div>
+    <p class="plans-footer">Após o login, você será direcionado para o checkout do Mercado Pago.</p>
+</div>
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        padding: 5rem 2rem;
+        text-align: center;
+    }
+    .hero-content h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    .hero-content p {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .btn-large {
+        padding: 0.8rem 2rem;
+        font-size: 1.1rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: white;
+        text-decoration: none;
+        border-radius: 40px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(14,165,233,0.3);
+    }
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        text-decoration: none;
+        border-radius: 40px;
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: background 0.2s;
+    }
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.2);
+    }
+    .features-section {
+        padding: 4rem 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .features-section h2 {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+        color: #1e293b;
+    }
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+    }
+    .feature-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        transition: transform 0.2s;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+    .feature-card i {
+        font-size: 2.5rem;
+        color: #0ea5e9;
+        margin-bottom: 1rem;
+    }
+    .feature-card h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+    .feature-card p {
+        color: var(--gray);
+    }
+    .plans-section {
+        padding: 4rem 2rem;
+        background: #f8fafc;
+        text-align: center;
+    }
+    .plans-section h2 {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+    }
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .plan-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        transition: transform 0.3s;
+        position: relative;
+    }
+    .plan-card.featured {
+        border: 2px solid #0ea5e9;
+        transform: scale(1.02);
+    }
+    .plan-badge {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        padding: 0.25rem 1rem;
+        border-radius: 40px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    .plan-header h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .plan-price {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0ea5e9;
+        margin: 1rem 0;
+    }
+    .plan-price span {
+        font-size: 0.9rem;
+        font-weight: normal;
+        color: #64748b;
+    }
+    .plan-savings {
+        background: #e2e8f0;
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    .plan-features {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+    .plan-features li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #475569;
+    }
+    .plan-features i {
+        width: 20px;
+        color: #10b981;
+    }
+    .btn-plan {
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 40px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        display: inline-block;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .btn-plan:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(14,165,233,0.3);
+    }
+    .plans-footer {
+        margin-top: 2rem;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+    @media (max-width: 768px) {
+        .hero-content h1 { font-size: 2rem; }
+        .hero-content p { font-size: 1rem; }
+        .features-grid { grid-template-columns: 1fr; }
+        .plans-grid { grid-template-columns: 1fr; }
+        .plan-card.featured { transform: scale(1); }
+    }
+</style>
+{% endblock %}
