@@ -309,12 +309,10 @@ def checkout(request):
     plan = request.GET.get('plan')
     preference_id_param = request.GET.get('preference_id')
 
-    # Se veio um preference_id, tenta encontrar o pagamento pendente
+    # Se veio um preference_id, tenta retomar pagamento pendente
     if preference_id_param:
         payment = Payment.objects.filter(preference_id=preference_id_param, user=request.user, status='PENDING').first()
-        if payment and payment.init_point:
-            # Em vez de redirecionar diretamente para o Mercado Pago,
-            # renderizamos o Brick com o mesmo preference_id
+        if payment:
             return render(request, 'nfe/checkout.html', {
                 'plan': payment.plan,
                 'amount': payment.amount,
@@ -322,10 +320,8 @@ def checkout(request):
                 'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
             })
         else:
-            # Se não encontrou, redireciona para home
             return redirect('home')
 
-    # Caso contrário, cria uma nova preferência
     prices = {'mensal': 0.01, 'trimestral': 79.90, 'anual': 299.90}
     if not plan or plan not in prices:
         return redirect('home')
@@ -343,17 +339,32 @@ def checkout(request):
     pending_url = f"{public_url}{reverse('payment_pending')}"
     notification_url = f"{public_url}{reverse('payment_webhook')}"
 
+    # Dados do comprador
+    payer_data = {
+        "email": request.user.email or "cliente@smartdanfe.com.br",
+        "first_name": request.user.first_name or "Cliente",
+        "last_name": request.user.last_name or "SmartDanfe",
+        "phone": {
+            "area_code": "11",
+            "number": "999999999"
+        },
+        "identification": {
+            "type": "CPF",
+            "number": "11111111111"
+        }
+    }
+
     preference_data = {
         "items": [{
+            "id": f"plan_{plan}",
             "title": f"SmartDanfe - Plano {plan.capitalize()}",
+            "description": f"Acesso ao conversor de NF-e - Plano {plan.capitalize()}",
+            "category_id": "services",
             "quantity": 1,
             "currency_id": "BRL",
             "unit_price": amount,
         }],
-        "payer": {
-            "email": request.user.email or "cliente@smartdanfe.com.br",
-            "name": request.user.get_full_name() or request.user.username,
-        },
+        "payer": payer_data,
         "back_urls": {
             "success": success_url,
             "failure": failure_url,
@@ -362,6 +373,8 @@ def checkout(request):
         "auto_return": "approved",
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan}",
+        "binary_mode": True,
+        "statement_descriptor": "SMARTDANFE",
     }
 
     try:
@@ -539,24 +552,18 @@ def payment_webhook(request):
         print("Erro ao parsear JSON:", e)
         return JsonResponse({'status': 'error'}, status=400)
 
-    # Verifica se é uma notificação de pagamento
     if data.get('type') == 'payment':
         payment_id = data['data']['id']
-        print(f"Notificação de pagamento ID: {payment_id}")
-
         sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
         try:
             payment_info = sdk.payment().get(payment_id)
             if payment_info['status'] == 200:
                 payment_data = payment_info['response']
-                print("Dados do pagamento:", payment_data)
-
-                # Extrai dados relevantes
-                status = payment_data.get('status')  # 'approved', 'pending', etc.
+                status = payment_data.get('status')
                 preference_id = payment_data.get('preference_id')
                 external_reference = payment_data.get('external_reference')
 
-                # Busca o pagamento no banco
+                # Busca pagamento no banco
                 payment = None
                 if preference_id:
                     payment = Payment.objects.filter(preference_id=preference_id).first()
@@ -564,17 +571,15 @@ def payment_webhook(request):
                     payment = Payment.objects.filter(external_reference=external_reference).first()
 
                 if payment:
-                    print(f"Pagamento encontrado no banco: {payment.id}")
                     payment.status = status.upper()
                     payment.payment_id = payment_id
                     payment.save()
 
                     if status == 'approved':
-                        # Ativa a assinatura
+                        # Ativa assinatura
                         profile = payment.user.profile
                         profile.subscription_active = True
                         profile.plan = payment.plan
-                        # Calcula dias baseado no plano
                         if payment.plan == 'mensal':
                             days = 30
                         elif payment.plan == 'trimestral':
@@ -586,12 +591,8 @@ def payment_webhook(request):
                         profile.subscription_until = datetime.now() + timedelta(days=days)
                         profile.save()
                         print(f"Assinatura ativada para {payment.user.username}")
-                else:
-                    print("Pagamento não encontrado no banco")
-
         except Exception as e:
-            print("Erro ao processar pagamento via webhook:", e)
-
+            print("Erro no webhook:", e)
     return JsonResponse({'status': 'ok'})
 
 
