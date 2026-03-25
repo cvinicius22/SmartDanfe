@@ -307,6 +307,25 @@ logger = logging.getLogger(__name__)
 @login_required
 def checkout(request):
     plan = request.GET.get('plan')
+    preference_id_param = request.GET.get('preference_id')
+
+    # Se veio um preference_id, tenta encontrar o pagamento pendente
+    if preference_id_param:
+        payment = Payment.objects.filter(preference_id=preference_id_param, user=request.user, status='PENDING').first()
+        if payment and payment.init_point:
+            # Em vez de redirecionar diretamente para o Mercado Pago,
+            # renderizamos o Brick com o mesmo preference_id
+            return render(request, 'nfe/checkout.html', {
+                'plan': payment.plan,
+                'amount': payment.amount,
+                'preference_id': payment.preference_id,
+                'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
+            })
+        else:
+            # Se não encontrou, redireciona para home
+            return redirect('home')
+
+    # Caso contrário, cria uma nova preferência
     prices = {'mensal': 0.01, 'trimestral': 79.90, 'anual': 299.90}
     if not plan or plan not in prices:
         return redirect('home')
@@ -318,16 +337,11 @@ def checkout(request):
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
     base_url = request.build_absolute_uri('/').rstrip('/')
-    success_url = f"{base_url}{reverse('payment_success')}"
-    failure_url = f"{base_url}{reverse('payment_failure')}"
-    pending_url = f"{base_url}{reverse('payment_pending')}"
-    notification_url = f"{base_url}{reverse('payment_webhook')}"
-
-    print("Base URL:", base_url)
-    print("Success URL:", success_url)
-    print("Failure URL:", failure_url)
-    print("Pending URL:", pending_url)
-    print("Notification URL:", notification_url)
+    public_url = getattr(settings, 'PUBLIC_URL', base_url)
+    success_url = f"{public_url}{reverse('payment_success')}"
+    failure_url = f"{public_url}{reverse('payment_failure')}"
+    pending_url = f"{public_url}{reverse('payment_pending')}"
+    notification_url = f"{public_url}{reverse('payment_webhook')}"
 
     preference_data = {
         "items": [{
@@ -345,15 +359,13 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        "auto_return": "approved",  # ativado
+        "auto_return": "approved",
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan}",
     }
 
     try:
         preference_response = sdk.preference().create(preference_data)
-        print("Resposta MP:", preference_response)
-
         if preference_response.get('status') != 201:
             error = preference_response.get('response', {}).get('message', 'Erro desconhecido')
             cause = preference_response.get('response', {}).get('cause')
@@ -386,6 +398,7 @@ def checkout(request):
         'preference_id': preference_id,
         'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
     })
+
 
 @csrf_exempt
 def process_payment(request):
@@ -472,20 +485,15 @@ def process_payment(request):
 @login_required
 def payment_success(request):
     preference_id = request.GET.get('preference_id')
-    payment_id = request.GET.get('collection_id')  # também pode vir como 'payment_id'
-
-    print("=== PAYMENT_SUCCESS CHAMADA ===")
-    print("Preference ID:", preference_id)
-    print("Payment ID:", payment_id)
+    payment_id = request.GET.get('collection_id')  # ou 'payment_id'
 
     if preference_id:
-        payment = Payment.objects.filter(preference_id=preference_id).first()
+        payment = Payment.objects.filter(preference_id=preference_id, user=request.user).first()
         if payment and payment.status != 'APPROVED':
-            # Consulta o status atual diretamente no Mercado Pago
-            try:
-                sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-                if payment_id:
-                    # Buscar pelo payment_id
+            # Se temos payment_id, consulta no Mercado Pago
+            if payment_id:
+                try:
+                    sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
                     payment_info = sdk.payment().get(payment_id)
                     if payment_info['status'] == 200:
                         status = payment_info['response'].get('status')
@@ -493,30 +501,24 @@ def payment_success(request):
                             payment.status = 'APPROVED'
                             payment.payment_id = payment_id
                             payment.save()
-                else:
-                    # Se não temos payment_id, podemos tentar buscar pelo external_reference
-                    # Isso é menos preciso, mas uma alternativa
-                    # Para simplificar, vamos usar o payment_id do próprio pagamento se existir
-                    # Caso contrário, podemos ignorar
-                    pass
-            except Exception as e:
-                print("Erro ao consultar pagamento:", e)
+                except Exception as e:
+                    print("Erro ao consultar pagamento:", e)
 
-            # Se ainda não foi aprovado, marca como aprovado (fallback)
+            # Fallback: se não conseguiu consultar, marca como aprovado (apenas em teste)
             if payment.status != 'APPROVED':
                 payment.status = 'APPROVED'
                 payment.save()
 
-            # Ativar assinatura
+            # Ativa assinatura
             profile = request.user.profile
             profile.subscription_active = True
             profile.plan = payment.plan
             days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
             profile.subscription_until = datetime.now() + timedelta(days=days)
             profile.save()
-            print("Assinatura ativada para", request.user.username)
 
     return render(request, 'nfe/payment_success.html')
+
 
 @login_required
 def payment_failure(request):
@@ -527,23 +529,17 @@ def payment_failure(request):
 def payment_pending(request):
     return render(request, 'nfe/payment_pending.html')
 
-
 @csrf_exempt
 def payment_webhook(request):
-    # Log para saber que o webhook foi chamado
     print("=== WEBHOOK CHAMADO ===")
-    print("Request body:", request.body)
-
     try:
         data = json.loads(request.body)
+        print("Dados recebidos:", data)
     except Exception as e:
         print("Erro ao parsear JSON:", e)
         return JsonResponse({'status': 'error'}, status=400)
 
-    # Log dos dados recebidos
-    print("Dados do webhook:", data)
-
-    # A notificação pode vir com diferentes tipos: 'payment', 'merchant_order', etc.
+    # Verifica se é uma notificação de pagamento
     if data.get('type') == 'payment':
         payment_id = data['data']['id']
         print(f"Notificação de pagamento ID: {payment_id}")
@@ -551,54 +547,53 @@ def payment_webhook(request):
         sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
         try:
             payment_info = sdk.payment().get(payment_id)
-            payment_data = payment_info["response"]
-            print("Dados do pagamento:", payment_data)
+            if payment_info['status'] == 200:
+                payment_data = payment_info['response']
+                print("Dados do pagamento:", payment_data)
 
-            external_reference = payment_data.get('external_reference')
-            preference_id = payment_data.get('preference_id')
-            status = payment_data.get('status')  # 'approved', 'pending', etc.
+                # Extrai dados relevantes
+                status = payment_data.get('status')  # 'approved', 'pending', etc.
+                preference_id = payment_data.get('preference_id')
+                external_reference = payment_data.get('external_reference')
 
-            if external_reference:
-                try:
-                    user_id, plan = external_reference.split('_')
-                except:
-                    user_id = external_reference
-                    plan = None
-            else:
-                user_id = None
-                plan = None
-
-            # Tenta encontrar o pagamento no banco pelo preference_id
-            if preference_id:
-                payment = Payment.objects.filter(preference_id=preference_id).first()
-            elif external_reference:
-                # Caso não tenha preference_id, tenta por external_reference
-                payment = Payment.objects.filter(external_reference=external_reference).first()
-            else:
+                # Busca o pagamento no banco
                 payment = None
+                if preference_id:
+                    payment = Payment.objects.filter(preference_id=preference_id).first()
+                elif external_reference:
+                    payment = Payment.objects.filter(external_reference=external_reference).first()
 
-            if payment:
-                print(f"Pagamento encontrado no banco: {payment.id}")
-                payment.status = status.upper()
-                payment.payment_id = payment_id
-                payment.save()
+                if payment:
+                    print(f"Pagamento encontrado no banco: {payment.id}")
+                    payment.status = status.upper()
+                    payment.payment_id = payment_id
+                    payment.save()
 
-                if status == 'approved':
-                    # Ativa a assinatura
-                    profile = payment.user.profile
-                    profile.subscription_active = True
-                    profile.plan = payment.plan or plan
-                    days = 30 if (payment.plan == 'mensal' or plan == 'mensal') else (90 if (payment.plan == 'trimestral' or plan == 'trimestral') else 365)
-                    profile.subscription_until = datetime.now() + timedelta(days=days)
-                    profile.save()
-                    print(f"Assinatura ativada para {payment.user.username}")
-            else:
-                print("Pagamento não encontrado no banco")
+                    if status == 'approved':
+                        # Ativa a assinatura
+                        profile = payment.user.profile
+                        profile.subscription_active = True
+                        profile.plan = payment.plan
+                        # Calcula dias baseado no plano
+                        if payment.plan == 'mensal':
+                            days = 30
+                        elif payment.plan == 'trimestral':
+                            days = 90
+                        elif payment.plan == 'anual':
+                            days = 365
+                        else:
+                            days = 30
+                        profile.subscription_until = datetime.now() + timedelta(days=days)
+                        profile.save()
+                        print(f"Assinatura ativada para {payment.user.username}")
+                else:
+                    print("Pagamento não encontrado no banco")
 
         except Exception as e:
             print("Erro ao processar pagamento via webhook:", e)
 
     return JsonResponse({'status': 'ok'})
+
 
 @login_required
 def pending_payments(request):
@@ -612,32 +607,37 @@ def dashboard(request):
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
     return render(request, 'nfe/dashboard.html', {'payment_history': pending_payments})
 
+from django.utils import timezone
+
 @login_required
 def payment_history(request):
-    """Página com histórico de pagamentos e informações da assinatura atual"""
-    # Busca todos os pagamentos do usuário ordenados por data (mais recente primeiro)
     all_payments = Payment.objects.filter(user=request.user).order_by('-created_at')
-    
-    # Busca a assinatura ativa atual (pode ser um pagamento aprovado com validade)
-    active_subscription = None
     profile = request.user.profile
+    active_subscription = None
     if profile.subscription_active and profile.subscription_until:
-        if profile.subscription_until > datetime.now():
+        # Compare using timezone.now() to be timezone-aware
+        if profile.subscription_until > timezone.now():
             active_subscription = {
                 'plan': profile.plan,
                 'expiration_date': profile.subscription_until,
                 'status': 'Ativa'
             }
         else:
-            # Assinatura expirada
             active_subscription = {
                 'plan': profile.plan,
                 'expiration_date': profile.subscription_until,
                 'status': 'Expirada'
             }
-    
     context = {
         'payments': all_payments,
         'active_subscription': active_subscription,
     }
     return render(request, 'nfe/payment_history.html', context)
+
+@login_required
+def payment_status(request, payment_id):
+    """Exibe o status de um pagamento específico usando o Brick do Mercado Pago"""
+    return render(request, 'nfe/payment_status.html', {
+        'payment_id': payment_id,
+        'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
+    })
