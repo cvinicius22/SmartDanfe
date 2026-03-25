@@ -9,4 +9,4 @@ services:
         fromDatabase:
           name: smartdanfe-db
           property: connectionString
-    preDeployCommand: python manage.py migrate --noinput   # <-- aqui
+    preDeployCommand: "python manage.py makemigrations && python manage.py migrate"
