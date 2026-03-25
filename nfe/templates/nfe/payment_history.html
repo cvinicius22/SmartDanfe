@@ -67,8 +67,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if payment.status == 'PENDING' and payment.init_point %}
-                                    <a href="{% url 'checkout' %}?preference_id={{ payment.preference_id }}&plan={{ payment.plan }}" target="_blank" class="btn-small">Continuar</a>
+                                {% if payment.status == 'PENDING' and payment.preference_id %}
+                                    <a href="{% url 'checkout' %}?plan={{ payment.plan }}&preference_id={{ payment.preference_id }}" class="btn-small">Continuar Pagamento</a>
                                 {% endif %}
                             </td>
                         </tr>
