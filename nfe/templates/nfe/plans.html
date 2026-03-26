@@ -2,6 +2,14 @@
 
 {% block content %}
 <div class="plans-container">
+    {% if has_pending %}
+        <div class="alert alert-warning">
+            <i class="fas fa-clock"></i> Você possui pagamentos pendentes. 
+            <a href="{% url 'pending_payments' %}">Clique aqui</a> para regularizar ou continue com um novo plano.
+        </div>
+    {% endif %}
+
+<div class="plans-container">
     <div class="plans-header">
         <h1>SmartDanfe - Planos e Assinaturas</h1>
         <p>Escolha o plano ideal para você e tenha acesso ilimitado ao nosso conversor de NF-e</p>
@@ -207,6 +215,20 @@
         .plan-card.featured {
             transform: scale(1);
         }
+    }
+        .alert-warning {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .alert-warning a {
+        color: #f59e0b;
+        font-weight: bold;
     }
 </style>
 {% endblock %}
