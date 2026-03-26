@@ -24,7 +24,6 @@ import urllib.parse
 
 logger = logging.getLogger(__name__)
 
-
 def home(request):
     context = {}
     if request.user.is_authenticated:
@@ -36,7 +35,6 @@ def home(request):
             # Por enquanto, redirecionamos para dashboard.
             return redirect('dashboard')
     return render(request, 'nfe/plans.html', context)
-
 
 def register(request):
     """Registro de novos usuários, capturando o plano da URL"""
