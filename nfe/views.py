@@ -26,16 +26,16 @@ logger = logging.getLogger(__name__)
 
 
 def home(request):
+    context = {}
     if request.user.is_authenticated:
         has_approved = Payment.objects.filter(user=request.user, status='APPROVED').exists()
-        if not has_approved:
-            has_pending = Payment.objects.filter(user=request.user, status='PENDING').exists()
-            if has_pending:
-                return redirect('payment_history')
-            else:
-                # sem pendência e sem aprovação, fica na página de planos
-                return render(request, 'nfe/plans.html')
-    return render(request, 'nfe/plans.html')
+        has_pending = Payment.objects.filter(user=request.user, status='PENDING').exists()
+        context['has_pending'] = has_pending
+        if has_approved:
+            # Se já tem assinatura ativa, pode ser que queira ver os planos para upgrade? 
+            # Por enquanto, redirecionamos para dashboard.
+            return redirect('dashboard')
+    return render(request, 'nfe/plans.html', context)
 
 
 def register(request):
