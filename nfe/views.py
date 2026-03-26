@@ -18,6 +18,9 @@ from .models import NFe, Payment, UserProfile
 from .api_client import add_chave, baixar_pdf, baixar_xml
 from .forms import CustomUserCreationForm
 from .decorators import subscription_required
+import hashlib
+import hmac
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -304,6 +307,7 @@ def stats(request):
 import logging
 logger = logging.getLogger(__name__)
 
+
 @login_required
 def checkout(request):
     plan = request.GET.get('plan')
@@ -395,6 +399,7 @@ def checkout(request):
     
     # Redireciona para o checkout do Mercado Pago
     return redirect(init_point)
+
 
 @csrf_exempt
 def process_payment(request):
@@ -525,15 +530,53 @@ def payment_failure(request):
 def payment_pending(request):
     return render(request, 'nfe/payment_pending.html')
 
+
 @csrf_exempt
 def payment_webhook(request):
-    print("=== WEBHOOK CHAMADO ===")
+    if request.method != 'POST':
+        return JsonResponse({'status': 'ok'})
+
+    # Obtém os headers
+    x_signature = request.headers.get('x-signature', '')
+    x_request_id = request.headers.get('x-request-id', '')
+
+    # Obtém os query params
+    query_params = urllib.parse.parse_qs(request.GET.urlencode())
+    data_id = query_params.get('data.id', [''])[0]
+
+    # Separa ts e v1 do x-signature
+    parts = x_signature.split(',')
+    ts = ''
+    hash_v1 = ''
+    for part in parts:
+        key_val = part.split('=', 1)
+        if len(key_val) == 2:
+            key, val = key_val
+            if key == 'ts':
+                ts = val
+            elif key == 'v1':
+                hash_v1 = val
+
+    # Monta o manifesto
+    manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+
+    # Obtém a chave secreta da sua aplicação no painel do Mercado Pago
+    secret = settings.MERCADOPAGO_WEBHOOK_SECRET  # Defina no .env
+
+    # Calcula o HMAC
+    hmac_obj = hmac.new(secret.encode(), msg=manifest.encode(), digestmod=hashlib.sha256)
+    computed_hash = hmac_obj.hexdigest()
+
+    if computed_hash != hash_v1:
+        print("Falha na validação da assinatura")
+        return JsonResponse({'status': 'ok'}, status=200)  # Não retorna erro para o MP
+
+    # Processa o corpo da notificação
     try:
         data = json.loads(request.body)
-        print("Dados recebidos:", data)
     except Exception as e:
         print("Erro ao parsear JSON:", e)
-        return JsonResponse({'status': 'error'}, status=400)
+        return JsonResponse({'status': 'ok'})
 
     if data.get('type') == 'payment':
         payment_id = data['data']['id']
@@ -546,7 +589,6 @@ def payment_webhook(request):
                 preference_id = payment_data.get('preference_id')
                 external_reference = payment_data.get('external_reference')
 
-                # Busca pagamento no banco
                 payment = None
                 if preference_id:
                     payment = Payment.objects.filter(preference_id=preference_id).first()
@@ -557,27 +599,20 @@ def payment_webhook(request):
                     payment.status = status.upper()
                     payment.payment_id = payment_id
                     payment.save()
-
                     if status == 'approved':
-                        # Ativa assinatura
                         profile = payment.user.profile
                         profile.subscription_active = True
                         profile.plan = payment.plan
-                        if payment.plan == 'mensal':
-                            days = 30
-                        elif payment.plan == 'trimestral':
-                            days = 90
-                        elif payment.plan == 'anual':
-                            days = 365
-                        else:
-                            days = 30
+                        days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
                         profile.subscription_until = datetime.now() + timedelta(days=days)
                         profile.save()
                         print(f"Assinatura ativada para {payment.user.username}")
+                else:
+                    print("Pagamento não encontrado")
         except Exception as e:
-            print("Erro no webhook:", e)
-    return JsonResponse({'status': 'ok'})
+            print("Erro ao processar pagamento:", e)
 
+    return JsonResponse({'status': 'ok'})
 
 @login_required
 def pending_payments(request):
