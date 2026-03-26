@@ -308,52 +308,34 @@ logger = logging.getLogger(__name__)
 def checkout(request):
     plan = request.GET.get('plan')
     preference_id_param = request.GET.get('preference_id')
-
+    
     # Se veio um preference_id, tenta retomar pagamento pendente
     if preference_id_param:
         payment = Payment.objects.filter(preference_id=preference_id_param, user=request.user, status='PENDING').first()
-        if payment:
-            return render(request, 'nfe/checkout.html', {
-                'plan': payment.plan,
-                'amount': payment.amount,
-                'preference_id': payment.preference_id,
-                'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
-            })
+        if payment and payment.init_point:
+            # Redireciona diretamente para o Mercado Pago
+            return redirect(payment.init_point)
         else:
             return redirect('home')
-
+    
+    # Caso contrário, cria uma nova preferência
     prices = {'mensal': 0.01, 'trimestral': 79.90, 'anual': 299.90}
     if not plan or plan not in prices:
         return redirect('home')
     amount = prices[plan]
-
+    
     if request.user.profile.subscription_active:
         return redirect('dashboard')
-
+    
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-
+    
     base_url = request.build_absolute_uri('/').rstrip('/')
     public_url = getattr(settings, 'PUBLIC_URL', base_url)
     success_url = f"{public_url}{reverse('payment_success')}"
     failure_url = f"{public_url}{reverse('payment_failure')}"
     pending_url = f"{public_url}{reverse('payment_pending')}"
     notification_url = f"{public_url}{reverse('payment_webhook')}"
-
-    # Dados do comprador
-    payer_data = {
-        "email": request.user.email or "cliente@smartdanfe.com.br",
-        "first_name": request.user.first_name or "Cliente",
-        "last_name": request.user.last_name or "SmartDanfe",
-        "phone": {
-            "area_code": "11",
-            "number": "999999999"
-        },
-        "identification": {
-            "type": "CPF",
-            "number": "11111111111"
-        }
-    }
-
+    
     preference_data = {
         "items": [{
             "id": f"plan_{plan}",
@@ -364,7 +346,13 @@ def checkout(request):
             "currency_id": "BRL",
             "unit_price": amount,
         }],
-        "payer": payer_data,
+        "payer": {
+            "email": request.user.email or "cliente@smartdanfe.com.br",
+            "first_name": request.user.first_name or "Cliente",
+            "last_name": request.user.last_name or "SmartDanfe",
+            "phone": {"area_code": "11", "number": "999999999"},
+            "identification": {"type": "CPF", "number": "11111111111"}
+        },
         "back_urls": {
             "success": success_url,
             "failure": failure_url,
@@ -376,7 +364,7 @@ def checkout(request):
         "binary_mode": True,
         "statement_descriptor": "SMARTDANFE",
     }
-
+    
     try:
         preference_response = sdk.preference().create(preference_data)
         if preference_response.get('status') != 201:
@@ -385,17 +373,17 @@ def checkout(request):
             if cause:
                 error += f" - {cause}"
             return render(request, 'nfe/error.html', {'message': f'Erro ao criar preferência: {error}'})
-
+        
         preference = preference_response.get('response', {})
         if 'id' not in preference:
             return render(request, 'nfe/error.html', {'message': 'Resposta inválida do Mercado Pago'})
-
+        
         preference_id = preference['id']
         init_point = preference.get('init_point')
     except Exception as e:
         logger.exception("Erro na criação da preferência")
         return render(request, 'nfe/error.html', {'message': f'Erro interno: {str(e)}'})
-
+    
     Payment.objects.create(
         user=request.user,
         plan=plan,
@@ -404,14 +392,9 @@ def checkout(request):
         init_point=init_point,
         status='PENDING'
     )
-
-    return render(request, 'nfe/checkout.html', {
-        'plan': plan,
-        'amount': amount,
-        'preference_id': preference_id,
-        'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
-    })
-
+    
+    # Redireciona para o checkout do Mercado Pago
+    return redirect(init_point)
 
 @csrf_exempt
 def process_payment(request):
