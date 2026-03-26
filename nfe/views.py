@@ -317,7 +317,6 @@ def checkout(request):
     if preference_id_param:
         payment = Payment.objects.filter(preference_id=preference_id_param, user=request.user, status='PENDING').first()
         if payment and payment.init_point:
-            # Redireciona diretamente para o Mercado Pago
             return redirect(payment.init_point)
         else:
             return redirect('home')
@@ -333,12 +332,21 @@ def checkout(request):
     
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     
+    # Construir URLs absolutas
     base_url = request.build_absolute_uri('/').rstrip('/')
     public_url = getattr(settings, 'PUBLIC_URL', base_url)
+    
+    # Gerar URLs usando reverse
     success_url = f"{public_url}{reverse('payment_success')}"
     failure_url = f"{public_url}{reverse('payment_failure')}"
     pending_url = f"{public_url}{reverse('payment_pending')}"
     notification_url = f"{public_url}{reverse('payment_webhook')}"
+    
+    # Debug: imprimir URLs no log
+    print("Success URL:", success_url)
+    print("Failure URL:", failure_url)
+    print("Pending URL:", pending_url)
+    print("Notification URL:", notification_url)
     
     preference_data = {
         "items": [{
@@ -362,7 +370,7 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        "auto_return": "approved",
+        # "auto_return": "approved",  # Comente por enquanto para evitar erro
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan}",
         "binary_mode": True,
@@ -371,6 +379,8 @@ def checkout(request):
     
     try:
         preference_response = sdk.preference().create(preference_data)
+        print("Resposta MP:", preference_response)
+        
         if preference_response.get('status') != 201:
             error = preference_response.get('response', {}).get('message', 'Erro desconhecido')
             cause = preference_response.get('response', {}).get('cause')
@@ -384,6 +394,7 @@ def checkout(request):
         
         preference_id = preference['id']
         init_point = preference.get('init_point')
+        
     except Exception as e:
         logger.exception("Erro na criação da preferência")
         return render(request, 'nfe/error.html', {'message': f'Erro interno: {str(e)}'})
@@ -397,7 +408,7 @@ def checkout(request):
         status='PENDING'
     )
     
-    # Redireciona para o checkout do Mercado Pago
+    # Redireciona para o Mercado Pago
     return redirect(init_point)
 
 
