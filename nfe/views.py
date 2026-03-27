@@ -472,6 +472,7 @@ def checkout(request):
         amount=plan.price,
         preference_id=preference_id,
         init_point=init_point,
+        external_reference=f"{request.user.id}_{plan.id}",  # adicionar
         status='PENDING'
     )
 
