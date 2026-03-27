@@ -25,33 +25,41 @@ import urllib.parse
 logger = logging.getLogger(__name__)
 
 def home(request):
-    context = {}
+    plans = Plan.objects.filter(is_active=True)
+    plans_dict = {plan.name: plan.price for plan in plans}
+    economias = {}
+    
+    # Cálculo do plano trimestral (economia em relação a 3 meses)
+    if 'mensal' in plans_dict and 'trimestral' in plans_dict:
+        mensal = plans_dict['mensal']
+        trimestral = plans_dict['trimestral']
+        valor_3_meses = mensal * 3
+        if valor_3_meses > trimestral:
+            economia = ((valor_3_meses - trimestral) / valor_3_meses) * 100
+            economias['trimestral'] = f"{economia:.0f}%"
+    
+    # Cálculo do plano anual (economia em relação a 12 meses)
+    if 'mensal' in plans_dict and 'anual' in plans_dict:
+        mensal = plans_dict['mensal']
+        anual = plans_dict['anual']
+        valor_12_meses = mensal * 12
+        if valor_12_meses > anual:
+            economia = ((valor_12_meses - anual) / valor_12_meses) * 100
+            economias['anual'] = f"{economia:.0f}%"
+    
+    context = {
+        'plans': plans_dict,
+        'economias': economias,
+    }
+    
     if request.user.is_authenticated:
         has_approved = Payment.objects.filter(user=request.user, status='APPROVED').exists()
         has_pending = Payment.objects.filter(user=request.user, status='PENDING').exists()
         context['has_pending'] = has_pending
         if has_approved:
-            # Se já tem assinatura ativa, pode ser que queira ver os planos para upgrade? 
-            # Por enquanto, redirecionamos para dashboard.
             return redirect('dashboard')
+    
     return render(request, 'nfe/plans.html', context)
-
-def register(request):
-    """Registro de novos usuários, capturando o plano da URL"""
-    plan = request.GET.get('plan')
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            if plan and plan in ['mensal', 'trimestral', 'anual']:
-                return redirect(f'/dashboard/checkout/?plan={plan}')
-            else:
-                return redirect('home')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'registration/register.html', {'form': form, 'plan': plan})
-
 
 @login_required
 @subscription_required
