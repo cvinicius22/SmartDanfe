@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import NFe, Payment, UserProfile
+from .models import NFe, Payment, UserProfile, Plan
 
 @admin.register(NFe)
 class NFeAdmin(admin.ModelAdmin):
@@ -16,3 +16,10 @@ class PaymentAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'subscription_active', 'subscription_until', 'plan', 'phone')
     list_filter = ('subscription_active', 'plan')
+
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    list_editable = ('price', 'is_active')
+    search_fields = ('name',)
