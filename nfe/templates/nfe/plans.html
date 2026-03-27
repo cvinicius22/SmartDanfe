@@ -9,16 +9,17 @@
         </div>
     {% endif %}
 
-<div class="plans-container">
     <div class="plans-header">
         <h1>SmartDanfe - Planos e Assinaturas</h1>
         <p>Escolha o plano ideal para você e tenha acesso ilimitado ao nosso conversor de NF-e</p>
     </div>
+
     <div class="plans-grid">
+        <!-- Plano Mensal -->
         <div class="plan-card">
             <div class="plan-header">
                 <h2>Mensal</h2>
-                <div class="plan-price">R$ 0,01<span>/mês</span></div>
+                <div class="plan-price">R$ {{ plans.mensal|floatformat:2 }}<span>/mês</span></div>
             </div>
             <div class="plan-features">
                 <ul>
@@ -34,12 +35,16 @@
                 <a href="{% url 'register' %}?plan=mensal" class="btn-plan">Assinar Mensal</a>
             {% endif %}
         </div>
+
+        <!-- Plano Trimestral -->
         <div class="plan-card featured">
             <div class="plan-badge">MAIS VENDIDO</div>
             <div class="plan-header">
                 <h2>Trimestral</h2>
-                <div class="plan-price">R$ 79,90<span>/trimestre</span></div>
-                <div class="plan-savings">Economia de 11%</div>
+                <div class="plan-price">R$ {{ plans.trimestral|floatformat:2 }}<span>/trimestre</span></div>
+                {% if economias.trimestral %}
+                    <div class="plan-savings">Economia de {{ economias.trimestral }}</div>
+                {% endif %}
             </div>
             <div class="plan-features">
                 <ul>
@@ -55,11 +60,15 @@
                 <a href="{% url 'register' %}?plan=trimestral" class="btn-plan">Assinar Trimestral</a>
             {% endif %}
         </div>
+
+        <!-- Plano Anual -->
         <div class="plan-card">
             <div class="plan-header">
                 <h2>Anual</h2>
-                <div class="plan-price">R$ 299,90<span>/ano</span></div>
-                <div class="plan-savings">Economia de 16%</div>
+                <div class="plan-price">R$ {{ plans.anual|floatformat:2 }}<span>/ano</span></div>
+                {% if economias.anual %}
+                    <div class="plan-savings">Economia de {{ economias.anual }}</div>
+                {% endif %}
             </div>
             <div class="plan-features">
                 <ul>
@@ -76,6 +85,7 @@
             {% endif %}
         </div>
     </div>
+
     <div class="plans-footer">
         <p>Os planos são recorrentes e podem ser cancelados a qualquer momento.</p>
         <p>Após a confirmação do pagamento, seu acesso será liberado imediatamente.</p>
@@ -208,15 +218,7 @@
         border-top: 1px solid #e2e8f0;
         padding-top: 2rem;
     }
-    @media (max-width: 768px) {
-        .plans-grid {
-            grid-template-columns: 1fr;
-        }
-        .plan-card.featured {
-            transform: scale(1);
-        }
-    }
-        .alert-warning {
+    .alert-warning {
         background: #fef3c7;
         border-left: 4px solid #f59e0b;
         padding: 1rem;
@@ -229,6 +231,14 @@
     .alert-warning a {
         color: #f59e0b;
         font-weight: bold;
+    }
+    @media (max-width: 768px) {
+        .plans-grid {
+            grid-template-columns: 1fr;
+        }
+        .plan-card.featured {
+            transform: scale(1);
+        }
     }
 </style>
 {% endblock %}
