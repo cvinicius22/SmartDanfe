@@ -4,14 +4,14 @@
 <div class="plans-container">
     {% if has_pending %}
         <div class="alert alert-warning">
-            <i class="fas fa-clock"></i> Você possui pagamentos pendentes. 
+            <i class="fas fa-clock"></i> Você possui pagamentos pendentes.
             <a href="{% url 'pending_payments' %}">Clique aqui</a> para regularizar ou continue com um novo plano.
         </div>
     {% endif %}
 
     <div class="plans-header">
-        <h1>SmartDanfe - Planos e Assinaturas</h1>
-        <p>Escolha o plano ideal para você e tenha acesso ilimitado ao nosso conversor de NF-e</p>
+        <h1>Escolha o plano ideal para você</h1>
+        <p>Tenha acesso ilimitado ao conversor de NF-e e otimize sua gestão fiscal</p>
     </div>
 
     <div class="plans-grid">
@@ -23,10 +23,10 @@
             </div>
             <div class="plan-features">
                 <ul>
-                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
-                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
-                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
-                    <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                    <li><i class="fas fa-check-circle"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check-circle"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check-circle"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-check-circle"></i> Suporte prioritário</li>
                 </ul>
             </div>
             {% if user.is_authenticated %}
@@ -36,7 +36,7 @@
             {% endif %}
         </div>
 
-        <!-- Plano Trimestral -->
+        <!-- Plano Trimestral (Destaque) -->
         <div class="plan-card featured">
             <div class="plan-badge">MAIS VENDIDO</div>
             <div class="plan-header">
@@ -48,10 +48,10 @@
             </div>
             <div class="plan-features">
                 <ul>
-                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
-                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
-                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
-                    <li><i class="fas fa-star"></i> Suporte WhatsApp</li>
+                    <li><i class="fas fa-check-circle"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check-circle"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check-circle"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-star"></i> Suporte WhatsApp exclusivo</li>
                 </ul>
             </div>
             {% if user.is_authenticated %}
@@ -72,9 +72,9 @@
             </div>
             <div class="plan-features">
                 <ul>
-                    <li><i class="fas fa-check"></i> Conversão ilimitada</li>
-                    <li><i class="fas fa-check"></i> Download PDF/XML</li>
-                    <li><i class="fas fa-check"></i> Relatórios Excel</li>
+                    <li><i class="fas fa-check-circle"></i> Conversão ilimitada</li>
+                    <li><i class="fas fa-check-circle"></i> Download PDF/XML</li>
+                    <li><i class="fas fa-check-circle"></i> Relatórios Excel</li>
                     <li><i class="fas fa-gem"></i> Acesso antecipado a novas features</li>
                 </ul>
             </div>
@@ -87,8 +87,8 @@
     </div>
 
     <div class="plans-footer">
-        <p>Os planos são recorrentes e podem ser cancelados a qualquer momento.</p>
-        <p>Após a confirmação do pagamento, seu acesso será liberado imediatamente.</p>
+        <p>Planos com cobrança recorrente • Cancele quando quiser</p>
+        <p>Pagamento seguro via cartão de crédito, PIX ou boleto</p>
     </div>
 </div>
 
@@ -112,8 +112,10 @@
         margin-bottom: 0.5rem;
     }
     .plans-header p {
-        color: #64748b;
+        color: #475569;
         font-size: 1.1rem;
+        max-width: 600px;
+        margin: 0 auto;
     }
     .plans-grid {
         display: grid;
@@ -125,19 +127,24 @@
         background: white;
         border-radius: 1.5rem;
         padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
         position: relative;
         text-align: center;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #eef2ff;
     }
     .plan-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
     }
     .plan-card.featured {
         border: 2px solid #0ea5e9;
         transform: scale(1.02);
+        box-shadow: 0 12px 24px -12px rgba(14, 165, 233, 0.2);
+    }
+    .plan-card.featured:hover {
+        transform: scale(1.02) translateY(-8px);
     }
     .plan-badge {
         position: absolute;
@@ -149,6 +156,7 @@
         border-radius: 40px;
         font-size: 0.75rem;
         font-weight: bold;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
     }
     .plan-header h2 {
         font-size: 1.5rem;
@@ -168,12 +176,13 @@
         color: #64748b;
     }
     .plan-savings {
-        background: #e2e8f0;
+        background: #dcfce7;
+        color: #15803d;
         display: inline-block;
         padding: 0.25rem 0.75rem;
         border-radius: 20px;
         font-size: 0.75rem;
-        color: #475569;
+        font-weight: 500;
         margin-top: 0.5rem;
     }
     .plan-features {
@@ -185,15 +194,17 @@
         padding: 0;
     }
     .plan-features li {
-        padding: 0.5rem 0;
+        padding: 0.6rem 0;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        color: #475569;
+        gap: 0.75rem;
+        color: #334155;
+        font-size: 0.95rem;
     }
     .plan-features i {
         width: 20px;
         color: #10b981;
+        font-size: 1rem;
     }
     .btn-plan {
         display: inline-block;
@@ -206,31 +217,40 @@
         text-decoration: none;
         width: 100%;
         transition: all 0.2s;
+        box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);
     }
     .btn-plan:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(14,165,233,0.3);
+        box-shadow: 0 8px 15px rgba(14, 165, 233, 0.3);
     }
     .plans-footer {
         text-align: center;
-        color: #64748b;
+        color: #475569;
         font-size: 0.875rem;
         border-top: 1px solid #e2e8f0;
         padding-top: 2rem;
+        margin-top: 1rem;
     }
     .alert-warning {
-        background: #fef3c7;
+        background: #fffbeb;
         border-left: 4px solid #f59e0b;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
+        padding: 1rem 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
+        color: #b45309;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     .alert-warning a {
-        color: #faa005;
-        font-weight: bold;
+        color: #f97316;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .alert-warning a:hover {
+        text-decoration: underline;
     }
     @media (max-width: 768px) {
         .plans-grid {
@@ -238,6 +258,12 @@
         }
         .plan-card.featured {
             transform: scale(1);
+        }
+        .plan-card.featured:hover {
+            transform: translateY(-8px);
+        }
+        .plans-header h1 {
+            font-size: 2rem;
         }
     }
 </style>
