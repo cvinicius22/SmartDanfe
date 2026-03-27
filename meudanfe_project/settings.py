@@ -132,7 +132,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 MERCADOPAGO_ACCESS_TOKEN = config('MERCADOPAGO_ACCESS_TOKEN')
 MERCADOPAGO_PUBLIC_KEY = config('MERCADOPAGO_PUBLIC_KEY')
 MERCADOPAGO_WEBHOOK_SECRET = config('MERCADOPAGO_WEBHOOK_SECRET')
-PUBLIC_URL = config('PUBLIC_URL', default='http://localhost:8000')
+PUBLIC_URL = config('PUBLIC_URL', default='')
 
 # Celery (opcional, mas mantemos)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='memory://')
