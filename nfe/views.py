@@ -357,11 +357,18 @@ def checkout(request):
             status='PENDING'
         ).first()
         if payment and payment.init_point:
-            return redirect(payment.init_point)
+            # Aqui você pode optar por redirecionar para o init_point ou continuar no seu site.
+            # Vamos manter dentro do site: renderiza o checkout com o preference_id existente
+            return render(request, 'nfe/checkout.html', {
+                'plan': payment.plan.name if isinstance(payment.plan, Plan) else payment.plan,
+                'amount': float(payment.amount),
+                'preference_id': payment.preference_id,
+                'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
+            })
         else:
             return redirect('home')
 
-    # Valida o plano
+    # Se não há preference_id, cria uma nova preferência
     if not plan_name:
         return redirect('home')
 
@@ -370,16 +377,13 @@ def checkout(request):
     except Plan.DoesNotExist:
         return redirect('home')
 
-    # Converte Decimal para float (Mercado Pago aceita números)
     amount = float(plan.price)
 
     if request.user.profile.subscription_active:
         return redirect('dashboard')
 
-    # Inicializa SDK do Mercado Pago
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
-    # Constroi URLs absolutas
     base_url = request.build_absolute_uri('/').rstrip('/')
     public_url = getattr(settings, 'PUBLIC_URL', base_url)
 
@@ -394,15 +398,13 @@ def checkout(request):
     success_url = build_absolute_url('payment_success')
     failure_url = build_absolute_url('payment_failure')
     pending_url = build_absolute_url('payment_pending')
-    notification_url = build_absolute_url('payment_webhook')  # se existir
+    notification_url = build_absolute_url('payment_webhook')
 
-    # Verifica se todas as URLs foram construídas
     if not all([success_url, failure_url, pending_url, notification_url]):
         return render(request, 'nfe/error.html', {
             'message': 'URLs de retorno inválidas. Verifique as rotas.'
         })
 
-    # Prepara os dados da preferência
     preference_data = {
         "items": [{
             "id": f"plan_{plan.id}",
@@ -425,7 +427,7 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        #"auto_return": "approved",
+        #"auto_return": "approved",  # Pode manter se as URLs estiverem corretas
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan.id}",
         "binary_mode": True,
@@ -459,18 +461,22 @@ def checkout(request):
             'message': f'Erro interno: {str(e)}'
         })
 
-    # Cria o registro de pagamento pendente
     Payment.objects.create(
         user=request.user,
         plan=plan,
-        amount=plan.price,  # mantém Decimal para o banco
+        amount=plan.price,
         preference_id=preference_id,
         init_point=init_point,
         status='PENDING'
     )
 
-    # Redireciona para o checkout do Mercado Pago
-    return redirect(init_point)
+    # Em vez de redirecionar para o Mercado Pago, renderiza o template do Brick
+    return render(request, 'nfe/checkout.html', {
+        'plan': plan.name,
+        'amount': amount,
+        'preference_id': preference_id,
+        'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
+    })
 
 @csrf_exempt
 def process_payment(request):
