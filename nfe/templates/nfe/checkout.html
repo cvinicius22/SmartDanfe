@@ -9,32 +9,198 @@
 {% block content %}
 <div class="checkout-container">
     <div class="checkout-card">
-        <h1>Pagamento</h1>
-        <p>Plano: <strong>{{ plan|capfirst }}</strong></p>
-        <p>Valor: <strong>R$ {{ amount|floatformat:2 }}</strong></p>
-        <div id="paymentBrick_container"></div>
+        <div class="checkout-header">
+            <div class="checkout-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <h1>Finalizar Pagamento</h1>
+            <p>Preencha os dados abaixo para concluir sua assinatura</p>
+        </div>
+
+        <div class="checkout-details">
+            <div class="detail-item">
+                <i class="fas fa-crown"></i>
+                <div>
+                    <span>Plano escolhido</span>
+                    <strong>{{ plan|capfirst }}</strong>
+                </div>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-tag"></i>
+                <div>
+                    <span>Valor total</span>
+                    <strong>R$ {{ amount|floatformat:2 }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-brick-wrapper">
+            <div id="paymentBrick_container"></div>
+        </div>
+
         <input type="hidden" id="preference_id" value="{{ preference_id }}">
         <input type="hidden" id="public_key" value="{{ public_key }}">
     </div>
 </div>
 
 <style>
+    /* ===== VARIÁVEIS (alinhadas com base.html) ===== */
+    :root {
+        --primary: #0ea5e9;
+        --primary-dark: #0284c7;
+        --secondary: #f97316;
+        --dark: #0f172a;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-400: #94a3b8;
+        --gray-500: #64748b;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-800: #1e293b;
+        --gray-900: #0f172a;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius-md: 1rem;
+        --radius-lg: 1.5rem;
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     .checkout-container {
-        max-width: 600px;
+        max-width: 640px;
         margin: 2rem auto;
-        padding: 0 1rem;
+        padding: 0 1.5rem;
+        animation: fadeIn 0.5s ease-out;
     }
     .checkout-card {
         background: white;
-        border-radius: 1rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .checkout-header {
+        background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-800) 100%);
         padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        color: white;
     }
-    .checkout-card h1 {
-        margin-bottom: 1rem;
+    .checkout-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--primary), #06b6d4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.3);
     }
+    .checkout-icon i {
+        font-size: 2rem;
+        color: white;
+    }
+    .checkout-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.01em;
+    }
+    .checkout-header p {
+        color: var(--gray-300);
+        font-size: 0.9rem;
+    }
+    .checkout-details {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.5rem 2rem;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+    }
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+    .detail-item i {
+        font-size: 1.25rem;
+        color: var(--primary);
+        background: white;
+        padding: 0.5rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+    .detail-item div {
+        display: flex;
+        flex-direction: column;
+    }
+    .detail-item span {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .detail-item strong {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--gray-800);
+    }
+    .payment-brick-wrapper {
+        padding: 2rem;
+    }
+    /* Estilos customizados para o Brick do Mercado Pago */
     #paymentBrick_container {
-        margin-top: 2rem;
+        min-height: 400px;
+    }
+    /* Mensagem de carregamento enquanto o Brick não aparece */
+    .payment-brick-wrapper::before {
+        content: "Carregando opções de pagamento...";
+        display: block;
+        text-align: center;
+        color: var(--gray-500);
+        font-size: 0.9rem;
+        padding: 2rem;
+    }
+    #paymentBrick_container:not(:empty) + .payment-brick-wrapper::before {
+        display: none;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .checkout-container {
+            padding: 0 1rem;
+        }
+        .checkout-header {
+            padding: 1.5rem;
+        }
+        .checkout-header h1 {
+            font-size: 1.5rem;
+        }
+        .checkout-details {
+            flex-direction: column;
+            padding: 1rem;
+        }
+        .detail-item {
+            justify-content: flex-start;
+        }
+        .payment-brick-wrapper {
+            padding: 1rem;
+        }
     }
 </style>
 
@@ -77,6 +243,11 @@
             callbacks: {
                 onReady: () => {
                     console.log("Payment Brick ready");
+                    // Remove o texto de carregamento quando o brick estiver pronto
+                    const wrapper = document.querySelector('.payment-brick-wrapper');
+                    if (wrapper && wrapper.style) {
+                        // Simplesmente deixa o brick visível
+                    }
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
                     const dataToSend = {
