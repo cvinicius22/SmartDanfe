@@ -465,7 +465,7 @@ def checkout(request):
         return render(request, 'nfe/error.html', {
             'message': f'Erro interno: {str(e)}'
         })
-
+    external_ref = f"{request.user.id}_{plan.id}"
     Payment.objects.create(
         user=request.user,
         plan=plan,
