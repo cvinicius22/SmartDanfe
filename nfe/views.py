@@ -349,7 +349,7 @@ def checkout(request):
     plan_name = request.GET.get('plan')
     preference_id_param = request.GET.get('preference_id')
 
-    # Se veio um preference_id, tenta retomar pagamento pendente
+    # Retomar pagamento pendente
     if preference_id_param:
         payment = Payment.objects.filter(
             preference_id=preference_id_param,
@@ -357,8 +357,7 @@ def checkout(request):
             status='PENDING'
         ).first()
         if payment and payment.init_point:
-            # Aqui você pode optar por redirecionar para o init_point ou continuar no seu site.
-            # Vamos manter dentro do site: renderiza o checkout com o preference_id existente
+            # Renderiza o Brick com o preference_id existente
             return render(request, 'nfe/checkout.html', {
                 'plan': payment.plan.name if isinstance(payment.plan, Plan) else payment.plan,
                 'amount': float(payment.amount),
@@ -368,7 +367,7 @@ def checkout(request):
         else:
             return redirect('home')
 
-    # Se não há preference_id, cria uma nova preferência
+    # Novo plano
     if not plan_name:
         return redirect('home')
 
@@ -400,6 +399,12 @@ def checkout(request):
     pending_url = build_absolute_url('payment_pending')
     notification_url = build_absolute_url('payment_webhook')
 
+    # Log para debug
+    logger.info(f"Success URL: {success_url}")
+    logger.info(f"Failure URL: {failure_url}")
+    logger.info(f"Pending URL: {pending_url}")
+    logger.info(f"Notification URL: {notification_url}")
+
     if not all([success_url, failure_url, pending_url, notification_url]):
         return render(request, 'nfe/error.html', {
             'message': 'URLs de retorno inválidas. Verifique as rotas.'
@@ -427,7 +432,7 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        #"auto_return": "approved",  # Pode manter se as URLs estiverem corretas
+        "auto_return": "approved",
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan.id}",
         "binary_mode": True,
@@ -470,7 +475,7 @@ def checkout(request):
         status='PENDING'
     )
 
-    # Em vez de redirecionar para o Mercado Pago, renderiza o template do Brick
+    # Renderiza o Brick no seu site
     return render(request, 'nfe/checkout.html', {
         'plan': plan.name,
         'amount': amount,
