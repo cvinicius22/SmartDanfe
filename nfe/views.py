@@ -24,6 +24,19 @@ import urllib.parse
 
 logger = logging.getLogger(__name__)
 
+
+from .models import Plan  # Certifique-se de importar o modelo Plan
+
+from .models import Plan, Payment
+from django.shortcuts import render, redirect
+
+
+from .models import Plan, Payment
+from django.shortcuts import render, redirect
+
+from .models import Plan, Payment
+from django.shortcuts import render, redirect
+
 def home(request):
     plans = Plan.objects.filter(is_active=True)
     plans_dict = {plan.name: plan.price for plan in plans}
@@ -60,6 +73,23 @@ def home(request):
             return redirect('dashboard')
     
     return render(request, 'nfe/plans.html', context)
+
+def register(request):
+    """Registro de novos usuários, capturando o plano da URL"""
+    plan = request.GET.get('plan')
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            if plan and plan in ['mensal', 'trimestral', 'anual']:
+                return redirect(f'/dashboard/checkout/?plan={plan}')
+            else:
+                return redirect('home')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'registration/register.html', {'form': form, 'plan': plan})
+
 
 @login_required
 @subscription_required
@@ -316,7 +346,7 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def checkout(request):
-    plan = request.GET.get('plan')
+    plan_name = request.GET.get('plan')
     preference_id_param = request.GET.get('preference_id')
     
     # Se veio um preference_id, tenta retomar pagamento pendente
@@ -327,32 +357,27 @@ def checkout(request):
         else:
             return redirect('home')
     
-    # Caso contrário, cria uma nova preferência
-    prices = {'mensal': 0.01, 'trimestral': 79.90, 'anual': 299.90}
-    if not plan or plan not in prices:
+    # Busca o plano no banco de dados
+    if not plan_name:
         return redirect('home')
-    amount = prices[plan]
+    try:
+        plan = Plan.objects.get(name=plan_name, is_active=True)
+    except Plan.DoesNotExist:
+        return redirect('home')
+    
+    amount = plan.price
     
     if request.user.profile.subscription_active:
         return redirect('dashboard')
-    
+        
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     
-    # Construir URLs absolutas
     base_url = request.build_absolute_uri('/').rstrip('/')
     public_url = getattr(settings, 'PUBLIC_URL', base_url)
-    
-    # Gerar URLs usando reverse
     success_url = f"{public_url}{reverse('payment_success')}"
     failure_url = f"{public_url}{reverse('payment_failure')}"
     pending_url = f"{public_url}{reverse('payment_pending')}"
     notification_url = f"{public_url}{reverse('payment_webhook')}"
-    
-    # Debug: imprimir URLs no log
-    print("Success URL:", success_url)
-    print("Failure URL:", failure_url)
-    print("Pending URL:", pending_url)
-    print("Notification URL:", notification_url)
     
     preference_data = {
         "items": [{
@@ -376,7 +401,7 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        # "auto_return": "approved",  # Comente por enquanto para evitar erro
+        "auto_return": "approved",
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan}",
         "binary_mode": True,
@@ -385,8 +410,6 @@ def checkout(request):
     
     try:
         preference_response = sdk.preference().create(preference_data)
-        print("Resposta MP:", preference_response)
-        
         if preference_response.get('status') != 201:
             error = preference_response.get('response', {}).get('message', 'Erro desconhecido')
             cause = preference_response.get('response', {}).get('cause')
@@ -400,7 +423,6 @@ def checkout(request):
         
         preference_id = preference['id']
         init_point = preference.get('init_point')
-        
     except Exception as e:
         logger.exception("Erro na criação da preferência")
         return render(request, 'nfe/error.html', {'message': f'Erro interno: {str(e)}'})
@@ -414,7 +436,7 @@ def checkout(request):
         status='PENDING'
     )
     
-    # Redireciona para o Mercado Pago
+    # Redireciona para o checkout do Mercado Pago
     return redirect(init_point)
 
 
