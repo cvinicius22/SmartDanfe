@@ -425,7 +425,7 @@ def checkout(request):
             "failure": failure_url,
             "pending": pending_url,
         },
-        "auto_return": "approved",
+        #"auto_return": "approved",
         "notification_url": notification_url,
         "external_reference": f"{request.user.id}_{plan.id}",
         "binary_mode": True,
