@@ -14,7 +14,7 @@ from django.urls import reverse
 import xml.etree.ElementTree as ET
 import pandas as pd
 import mercadopago
-from .models import NFe, Payment, UserProfile
+from .models import NFe, Payment, UserProfile, Plan
 from .api_client import add_chave, baixar_pdf, baixar_xml
 from .forms import CustomUserCreationForm
 from .decorators import subscription_required
