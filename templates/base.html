@@ -130,8 +130,8 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-                    .then(() => window.location.href = '/login/')
-                    .catch(() => window.location.href = '/login/');
+                    .then(() => window.location.href = '/')
+                    .catch(() => window.location.href = '/');
             });
         }
     </script>
