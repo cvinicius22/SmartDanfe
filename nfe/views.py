@@ -1,6 +1,9 @@
 import json
 import base64
 import logging
+import hashlib
+import hmac
+import urllib.parse
 from datetime import datetime, timedelta
 from collections import defaultdict
 from django.shortcuts import render, redirect
@@ -18,31 +21,16 @@ from .models import NFe, Payment, UserProfile, Plan
 from .api_client import add_chave, baixar_pdf, baixar_xml
 from .forms import CustomUserCreationForm
 from .decorators import subscription_required
-import hashlib
-import hmac
-import urllib.parse
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-
-from .models import Plan  # Certifique-se de importar o modelo Plan
-
-from .models import Plan, Payment
-from django.shortcuts import render, redirect
-
-
-from .models import Plan, Payment
-from django.shortcuts import render, redirect
-
-from .models import Plan, Payment
-from django.shortcuts import render, redirect
 
 def home(request):
     plans = Plan.objects.filter(is_active=True)
     plans_dict = {plan.name: plan.price for plan in plans}
     economias = {}
     
-    # Cálculo do plano trimestral (economia em relação a 3 meses)
     if 'mensal' in plans_dict and 'trimestral' in plans_dict:
         mensal = plans_dict['mensal']
         trimestral = plans_dict['trimestral']
@@ -51,7 +39,6 @@ def home(request):
             economia = ((valor_3_meses - trimestral) / valor_3_meses) * 100
             economias['trimestral'] = f"{economia:.0f}%"
     
-    # Cálculo do plano anual (economia em relação a 12 meses)
     if 'mensal' in plans_dict and 'anual' in plans_dict:
         mensal = plans_dict['mensal']
         anual = plans_dict['anual']
@@ -60,10 +47,7 @@ def home(request):
             economia = ((valor_12_meses - anual) / valor_12_meses) * 100
             economias['anual'] = f"{economia:.0f}%"
     
-    context = {
-        'plans': plans_dict,
-        'economias': economias,
-    }
+    context = {'plans': plans_dict, 'economias': economias}
     
     if request.user.is_authenticated:
         has_approved = Payment.objects.filter(user=request.user, status='APPROVED').exists()
@@ -74,8 +58,8 @@ def home(request):
     
     return render(request, 'nfe/plans.html', context)
 
+
 def register(request):
-    """Registro de novos usuários, capturando o plano da URL"""
     plan = request.GET.get('plan')
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -94,7 +78,8 @@ def register(request):
 @login_required
 @subscription_required
 def dashboard(request):
-    return render(request, 'nfe/dashboard.html')
+    pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
+    return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
 
 
 @require_POST
@@ -219,10 +204,7 @@ def relatorio_excel(request):
     dados_detalhado = []
     dados_xml = []
     for nfe in nfes:
-        dados_xml.append({
-            'Chave': nfe.chave_acesso,
-            'XML Completo': nfe.xml_text
-        })
+        dados_xml.append({'Chave': nfe.chave_acesso, 'XML Completo': nfe.xml_text})
         try:
             root = ET.fromstring(nfe.xml_text)
             ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
@@ -340,9 +322,6 @@ def stats(request):
         'monthly_data': [monthly_counts[k] for k in sorted(monthly_counts.keys())],
     })
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 @login_required
 def checkout(request):
@@ -357,7 +336,6 @@ def checkout(request):
             status='PENDING'
         ).first()
         if payment and payment.init_point:
-            # Renderiza o Brick com o preference_id existente
             return render(request, 'nfe/checkout.html', {
                 'plan': payment.plan.name if isinstance(payment.plan, Plan) else payment.plan,
                 'amount': float(payment.amount),
@@ -399,7 +377,6 @@ def checkout(request):
     pending_url = build_absolute_url('payment_pending')
     notification_url = build_absolute_url('payment_webhook')
 
-    # Log para debug
     logger.info(f"Success URL: {success_url}")
     logger.info(f"Failure URL: {failure_url}")
     logger.info(f"Pending URL: {pending_url}")
@@ -410,7 +387,6 @@ def checkout(request):
             'message': 'URLs de retorno inválidas. Verifique as rotas.'
         })
 
-    # Cria a referência externa única
     external_ref = f"{request.user.id}_{plan.id}"
 
     preference_data = {
@@ -469,7 +445,6 @@ def checkout(request):
             'message': f'Erro interno: {str(e)}'
         })
 
-    # Cria o registro do pagamento com external_reference
     Payment.objects.create(
         user=request.user,
         plan=plan,
@@ -480,7 +455,6 @@ def checkout(request):
         status='PENDING'
     )
 
-    # Renderiza o Brick no seu site
     return render(request, 'nfe/checkout.html', {
         'plan': plan.name,
         'amount': amount,
@@ -501,7 +475,6 @@ def process_payment(request):
 
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
-    # Dados básicos do pagamento
     payment_data = {
         "transaction_amount": data.get("transaction_amount"),
         "token": data.get("token"),
@@ -516,7 +489,6 @@ def process_payment(request):
         }
     }
 
-    # Extrair endereço do payer (para boleto)
     payer_address = data.get("payer", {}).get("address")
     if payer_address:
         payment_data["payer"]["address"] = {
@@ -528,7 +500,6 @@ def process_payment(request):
             "federal_unit": payer_address.get("federal_unit"),
         }
 
-    # Remove campos com valor None
     def clean_dict(d):
         return {k: v for k, v in d.items() if v is not None}
     payment_data = clean_dict(payment_data)
@@ -542,7 +513,6 @@ def process_payment(request):
         payment_response = sdk.payment().create(payment_data)
         print("Payment response:", payment_response)
 
-        # Verifica se houve erro
         if payment_response.get('status') != 201:
             error_msg = payment_response.get('response', {}).get('message', 'Erro desconhecido')
             cause = payment_response.get('response', {}).get('cause')
@@ -552,11 +522,9 @@ def process_payment(request):
 
         payment = payment_response.get('response', {})
         status = payment.get('status')
-        # Garante que status seja string
         if isinstance(status, int):
             status = str(status)
 
-        # Atualiza o registro no banco
         preference_id = data.get('preference_id')
         if preference_id:
             payment_obj = Payment.objects.filter(preference_id=preference_id).first()
@@ -570,16 +538,16 @@ def process_payment(request):
     except Exception as e:
         logger.exception("Erro ao processar pagamento")
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+
 @login_required
 def payment_success(request):
     preference_id = request.GET.get('preference_id')
-    payment_id = request.GET.get('collection_id')  # ou 'payment_id'
+    payment_id = request.GET.get('collection_id')
 
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id, user=request.user).first()
         if payment and payment.status != 'APPROVED':
-            # Se temos payment_id, consulta no Mercado Pago
             if payment_id:
                 try:
                     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
@@ -593,12 +561,10 @@ def payment_success(request):
                 except Exception as e:
                     print("Erro ao consultar pagamento:", e)
 
-            # Fallback: se não conseguiu consultar, marca como aprovado (apenas em teste)
             if payment.status != 'APPROVED':
                 payment.status = 'APPROVED'
                 payment.save()
 
-            # Ativa assinatura
             profile = request.user.profile
             profile.subscription_active = True
             profile.plan = payment.plan
@@ -625,18 +591,13 @@ def payment_webhook(request):
         return JsonResponse({'status': 'ok'})
 
     print("=== WEBHOOK CHAMADO ===")
-    
-    # --- Log do corpo bruto ---
-    raw_body = request.body.decode('utf-8')
-    print(f"Corpo bruto: {raw_body}")
 
-    # --- Obtém headers e query params (opcional para validação) ---
+    # Validação de assinatura (opcional)
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     query_params = urllib.parse.parse_qs(request.GET.urlencode())
     data_id = query_params.get('data.id', [''])[0]
 
-    # Validação de assinatura (se configurado)
     secret = getattr(settings, 'MERCADOPAGO_WEBHOOK_SECRET', None)
     if secret:
         parts = x_signature.split(',')
@@ -656,10 +617,9 @@ def payment_webhook(request):
             print("Falha na validação da assinatura")
             return JsonResponse({'status': 'ok'})
 
-    # --- Processa o corpo da notificação ---
     try:
-        data = json.loads(raw_body)
-        print("Dados parseados:", data)
+        data = json.loads(request.body)
+        print("Dados recebidos:", data)
     except Exception as e:
         print("Erro ao parsear JSON:", e)
         return JsonResponse({'status': 'ok'})
@@ -671,18 +631,14 @@ def payment_webhook(request):
     payment_id = data['data']['id']
     print(f"Payment ID: {payment_id}")
 
-    # --- Consulta detalhes do pagamento no Mercado Pago ---
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     try:
         payment_info = sdk.payment().get(payment_id)
-        print(f"Resposta da API: status={payment_info.get('status')}")
-        if payment_info.get('status') != 200:
-            print("Falha ao obter informações do pagamento.")
+        if payment_info['status'] != 200:
+            print("Falha ao obter informações do pagamento. Status:", payment_info['status'])
             return JsonResponse({'status': 'ok'})
 
-        payment_data = payment_info.get('response', {})
-        print("Dados do pagamento:", payment_data)
-
+        payment_data = payment_info['response']
         status = payment_data.get('status')
         preference_id = payment_data.get('preference_id')
         external_reference = payment_data.get('external_reference')
@@ -690,7 +646,6 @@ def payment_webhook(request):
         print(f"Preference ID: {preference_id}")
         print(f"External Reference: {external_reference}")
 
-        # --- Busca pelo pagamento no banco ---
         payment = None
         if preference_id:
             payment = Payment.objects.filter(preference_id=preference_id).first()
@@ -700,17 +655,11 @@ def payment_webhook(request):
             payment = Payment.objects.filter(external_reference=external_reference).first()
             if payment:
                 print(f"Encontrado por external_reference: {payment.id}")
-        if not payment and payment_id:
-            # Fallback: busca pelo payment_id (caso tenha sido salvo anteriormente)
-            payment = Payment.objects.filter(payment_id=payment_id).first()
-            if payment:
-                print(f"Encontrado por payment_id: {payment.id}")
 
         if not payment:
-            print("Pagamento não encontrado no banco! Verifique os dados.")
+            print("Pagamento não encontrado no banco!")
             return JsonResponse({'status': 'ok'})
 
-        # --- Atualiza status e ativa assinatura ---
         print(f"Status anterior: {payment.status}")
         payment.status = status.upper()
         payment.payment_id = payment_id
@@ -721,40 +670,22 @@ def payment_webhook(request):
             profile = payment.user.profile
             profile.subscription_active = True
             profile.plan = payment.plan
-            # Calcula dias baseado no plano
-            if payment.plan == 'mensal':
-                days = 30
-            elif payment.plan == 'trimestral':
-                days = 90
-            elif payment.plan == 'anual':
-                days = 365
-            else:
-                days = 30
+            days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
             profile.subscription_until = datetime.now() + timedelta(days=days)
             profile.save()
             print(f"Assinatura ativada para {payment.user.username}")
 
     except Exception as e:
         print("Erro no processamento do webhook:", e)
-        import traceback
-        traceback.print_exc()
 
     return JsonResponse({'status': 'ok'})
-    
-    
-    @login_required
+
+
+@login_required
 def pending_payments(request):
-    """Página de pagamentos pendentes (acessível mesmo sem assinatura)"""
     payments = Payment.objects.filter(user=request.user, status='PENDING').order_by('-created_at')
     return render(request, 'nfe/payment_history.html', {'payments': payments})
 
-@login_required
-@subscription_required
-def dashboard(request):
-    pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
-    return render(request, 'nfe/dashboard.html', {'payment_history': pending_payments})
-
-from django.utils import timezone
 
 @login_required
 def payment_history(request):
@@ -762,7 +693,6 @@ def payment_history(request):
     profile = request.user.profile
     active_subscription = None
     if profile.subscription_active and profile.subscription_until:
-        # Compare using timezone.now() to be timezone-aware
         if profile.subscription_until > timezone.now():
             active_subscription = {
                 'plan': profile.plan,
@@ -781,9 +711,9 @@ def payment_history(request):
     }
     return render(request, 'nfe/payment_history.html', context)
 
+
 @login_required
 def payment_status(request, payment_id):
-    """Exibe o status de um pagamento específico usando o Brick do Mercado Pago"""
     return render(request, 'nfe/payment_status.html', {
         'payment_id': payment_id,
         'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
