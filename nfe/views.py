@@ -201,83 +201,292 @@ def clear_all(request):
 @login_required
 def relatorio_excel(request):
     nfes = NFe.objects.filter(user=request.user, status='OK', xml_text__isnull=False).order_by('-created_at')
-    dados_detalhado = []
-    dados_xml = []
+    
+    # Listas para armazenar os dados
+    notas_resumo = []
+    itens = []
+    xml_completo = []
+
     for nfe in nfes:
-        dados_xml.append({'Chave': nfe.chave_acesso, 'XML Completo': nfe.xml_text})
+        xml_completo.append({
+            'Chave': nfe.chave_acesso,
+            'XML Completo': nfe.xml_text
+        })
+        
         try:
             root = ET.fromstring(nfe.xml_text)
             ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-
-            ide = root.find('.//nfe:ide', ns)
-            emit = root.find('.//nfe:emit', ns)
-            dest = root.find('.//nfe:dest', ns)
-            total = root.find('.//nfe:ICMSTot', ns)
-
-            chave = nfe.chave_acesso
-            serie = ide.find('nfe:serie', ns).text if ide is not None else ''
-            nNF = ide.find('nfe:nNF', ns).text if ide is not None else ''
-            dhEmi = ide.find('nfe:dhEmi', ns).text if ide is not None else ''
-            natOp = ide.find('nfe:natOp', ns).text if ide is not None else ''
-            emit_nome = emit.find('nfe:xNome', ns).text if emit is not None else ''
-            emit_cnpj = emit.find('nfe:CNPJ', ns).text if emit is not None else ''
-            dest_nome = dest.find('nfe:xNome', ns).text if dest is not None else ''
-            dest_cnpj = dest.find('nfe:CNPJ', ns).text if dest is not None else ''
-            vNF = total.find('nfe:vNF', ns).text if total is not None else '0'
-
-            itens = []
+            
+            # Dados da nota (infNFe)
+            infNFe = root.find('.//nfe:infNFe', ns)
+            if infNFe is None:
+                continue
+            
+            # Ide (identificação)
+            ide = infNFe.find('nfe:ide', ns)
+            if ide is not None:
+                serie = ide.find('nfe:serie', ns).text if ide.find('nfe:serie', ns) is not None else ''
+                nNF = ide.find('nfe:nNF', ns).text if ide.find('nfe:nNF', ns) is not None else ''
+                dhEmi = ide.find('nfe:dhEmi', ns).text if ide.find('nfe:dhEmi', ns) is not None else ''
+                dhSaiEnt = ide.find('nfe:dhSaiEnt', ns).text if ide.find('nfe:dhSaiEnt', ns) is not None else ''
+                natOp = ide.find('nfe:natOp', ns).text if ide.find('nfe:natOp', ns) is not None else ''
+                finNFe = ide.find('nfe:finNFe', ns).text if ide.find('nfe:finNFe', ns) is not None else ''
+                tpNF = ide.find('nfe:tpNF', ns).text if ide.find('nfe:tpNF', ns) is not None else ''
+                cNF = ide.find('nfe:cNF', ns).text if ide.find('nfe:cNF', ns) is not None else ''
+                verProc = ide.find('nfe:verProc', ns).text if ide.find('nfe:verProc', ns) is not None else ''
+            else:
+                serie = nNF = dhEmi = dhSaiEnt = natOp = finNFe = tpNF = cNF = verProc = ''
+            
+            # Emitente
+            emit = infNFe.find('nfe:emit', ns)
+            if emit is not None:
+                emit_nome = emit.find('nfe:xNome', ns).text if emit.find('nfe:xNome', ns) is not None else ''
+                emit_cnpj = emit.find('nfe:CNPJ', ns).text if emit.find('nfe:CNPJ', ns) is not None else ''
+                emit_ie = emit.find('nfe:IE', ns).text if emit.find('nfe:IE', ns) is not None else ''
+                emit_ender = emit.find('nfe:enderEmit', ns)
+                if emit_ender is not None:
+                    emit_uf = emit_ender.find('nfe:UF', ns).text if emit_ender.find('nfe:UF', ns) is not None else ''
+                    emit_mun = emit_ender.find('nfe:xMun', ns).text if emit_ender.find('nfe:xMun', ns) is not None else ''
+                    emit_cep = emit_ender.find('nfe:CEP', ns).text if emit_ender.find('nfe:CEP', ns) is not None else ''
+                else:
+                    emit_uf = emit_mun = emit_cep = ''
+            else:
+                emit_nome = emit_cnpj = emit_ie = emit_uf = emit_mun = emit_cep = ''
+            
+            # Destinatário
+            dest = infNFe.find('nfe:dest', ns)
+            if dest is not None:
+                dest_nome = dest.find('nfe:xNome', ns).text if dest.find('nfe:xNome', ns) is not None else ''
+                dest_cnpj = dest.find('nfe:CNPJ', ns).text if dest.find('nfe:CNPJ', ns) is not None else ''
+                dest_ie = dest.find('nfe:IE', ns).text if dest.find('nfe:IE', ns) is not None else ''
+                dest_email = dest.find('nfe:email', ns).text if dest.find('nfe:email', ns) is not None else ''
+                dest_ender = dest.find('nfe:enderDest', ns)
+                if dest_ender is not None:
+                    dest_uf = dest_ender.find('nfe:UF', ns).text if dest_ender.find('nfe:UF', ns) is not None else ''
+                    dest_mun = dest_ender.find('nfe:xMun', ns).text if dest_ender.find('nfe:xMun', ns) is not None else ''
+                    dest_cep = dest_ender.find('nfe:CEP', ns).text if dest_ender.find('nfe:CEP', ns) is not None else ''
+                else:
+                    dest_uf = dest_mun = dest_cep = ''
+            else:
+                dest_nome = dest_cnpj = dest_ie = dest_email = dest_uf = dest_mun = dest_cep = ''
+            
+            # Transporte
+            transp = infNFe.find('nfe:transp', ns)
+            modFrete = ''
+            vol_qVol = ''
+            vol_pesoB = ''
+            vol_pesoL = ''
+            if transp is not None:
+                modFrete = transp.find('nfe:modFrete', ns).text if transp.find('nfe:modFrete', ns) is not None else ''
+                vol = transp.find('nfe:vol', ns)
+                if vol is not None:
+                    vol_qVol = vol.find('nfe:qVol', ns).text if vol.find('nfe:qVol', ns) is not None else ''
+                    vol_pesoB = vol.find('nfe:pesoB', ns).text if vol.find('nfe:pesoB', ns) is not None else ''
+                    vol_pesoL = vol.find('nfe:pesoL', ns).text if vol.find('nfe:pesoL', ns) is not None else ''
+            
+            # Totais (ICMSTot)
+            total = infNFe.find('.//nfe:ICMSTot', ns)
+            if total is not None:
+                vProd = total.find('nfe:vProd', ns).text if total.find('nfe:vProd', ns) is not None else '0'
+                vNF = total.find('nfe:vNF', ns).text if total.find('nfe:vNF', ns) is not None else '0'
+                vICMS = total.find('nfe:vICMS', ns).text if total.find('nfe:vICMS', ns) is not None else '0'
+                vIPI = total.find('nfe:vIPI', ns).text if total.find('nfe:vIPI', ns) is not None else '0'
+                vPIS = total.find('nfe:vPIS', ns).text if total.find('nfe:vPIS', ns) is not None else '0'
+                vCOFINS = total.find('nfe:vCOFINS', ns).text if total.find('nfe:vCOFINS', ns) is not None else '0'
+                vFCP = total.find('nfe:vFCP', ns).text if total.find('nfe:vFCP', ns) is not None else '0'
+                vFCPST = total.find('nfe:vFCPST', ns).text if total.find('nfe:vFCPST', ns) is not None else '0'
+                vST = total.find('nfe:vST', ns).text if total.find('nfe:vST', ns) is not None else '0'
+                vDesc = total.find('nfe:vDesc', ns).text if total.find('nfe:vDesc', ns) is not None else '0'
+                vFrete = total.find('nfe:vFrete', ns).text if total.find('nfe:vFrete', ns) is not None else '0'
+                vSeg = total.find('nfe:vSeg', ns).text if total.find('nfe:vSeg', ns) is not None else '0'
+                vOutro = total.find('nfe:vOutro', ns).text if total.find('nfe:vOutro', ns) is not None else '0'
+            else:
+                vProd = vNF = vICMS = vIPI = vPIS = vCOFINS = vFCP = vFCPST = vST = vDesc = vFrete = vSeg = vOutro = '0'
+            
+            # Pagamento
+            pag = infNFe.find('.//nfe:detPag', ns)
+            if pag is not None:
+                tPag = pag.find('nfe:tPag', ns).text if pag.find('nfe:tPag', ns) is not None else ''
+                vPag = pag.find('nfe:vPag', ns).text if pag.find('nfe:vPag', ns) is not None else ''
+            else:
+                tPag = vPag = ''
+            
+            # Duplicatas (se houver)
+            dup = infNFe.find('.//nfe:dup', ns)
+            if dup is not None:
+                nDup = dup.find('nfe:nDup', ns).text if dup.find('nfe:nDup', ns) is not None else ''
+                dVenc = dup.find('nfe:dVenc', ns).text if dup.find('nfe:dVenc', ns) is not None else ''
+                vDup = dup.find('nfe:vDup', ns).text if dup.find('nfe:vDup', ns) is not None else ''
+            else:
+                nDup = dVenc = vDup = ''
+            
+            # Dados da nota para resumo
+            notas_resumo.append({
+                'Chave': nfe.chave_acesso,
+                'Série': serie,
+                'Número NF': nNF,
+                'Data Emissão': dhEmi,
+                'Data Saída/Entrada': dhSaiEnt,
+                'Natureza Operação': natOp,
+                'Finalidade': finNFe,
+                'Tipo NF (0=Entrada, 1=Saída)': tpNF,
+                'Número Controle': cNF,
+                'Versão Processo': verProc,
+                'Emitente (Nome)': emit_nome,
+                'Emitente (CNPJ)': emit_cnpj,
+                'Emitente (IE)': emit_ie,
+                'Emitente (UF)': emit_uf,
+                'Emitente (Município)': emit_mun,
+                'Emitente (CEP)': emit_cep,
+                'Destinatário (Nome)': dest_nome,
+                'Destinatário (CNPJ)': dest_cnpj,
+                'Destinatário (IE)': dest_ie,
+                'Destinatário (E-mail)': dest_email,
+                'Destinatário (UF)': dest_uf,
+                'Destinatário (Município)': dest_mun,
+                'Destinatário (CEP)': dest_cep,
+                'Modalidade Frete': modFrete,
+                'Qtde Volumes': vol_qVol,
+                'Peso Bruto (kg)': vol_pesoB,
+                'Peso Líquido (kg)': vol_pesoL,
+                'Valor dos Produtos (R$)': vProd,
+                'Valor Total NF (R$)': vNF,
+                'ICMS (R$)': vICMS,
+                'IPI (R$)': vIPI,
+                'PIS (R$)': vPIS,
+                'COFINS (R$)': vCOFINS,
+                'FCP (R$)': vFCP,
+                'FCPST (R$)': vFCPST,
+                'ST (R$)': vST,
+                'Desconto (R$)': vDesc,
+                'Frete (R$)': vFrete,
+                'Seguro (R$)': vSeg,
+                'Outras Despesas (R$)': vOutro,
+                'Forma de Pagamento': tPag,
+                'Valor Pago (R$)': vPag,
+                'Número Duplicata': nDup,
+                'Vencimento Duplicata': dVenc,
+                'Valor Duplicata (R$)': vDup,
+            })
+            
+            # Processa os itens
             for det in root.findall('.//nfe:det', ns):
                 prod = det.find('nfe:prod', ns)
-                if prod is not None:
-                    cProd = prod.find('nfe:cProd', ns).text if prod.find('nfe:cProd', ns) is not None else ''
-                    xProd = prod.find('nfe:xProd', ns).text if prod.find('nfe:xProd', ns) is not None else ''
-                    qCom = prod.find('nfe:qCom', ns).text if prod.find('nfe:qCom', ns) is not None else '0'
-                    vUnCom = prod.find('nfe:vUnCom', ns).text if prod.find('nfe:vUnCom', ns) is not None else '0'
-                    vProd = prod.find('nfe:vProd', ns).text if prod.find('nfe:vProd', ns) is not None else '0'
-                    itens.append({'cProd': cProd, 'xProd': xProd, 'qCom': qCom, 'vUnCom': vUnCom, 'vProd': vProd})
-
-            if itens:
-                for item in itens:
-                    dados_detalhado.append({
-                        'Chave': chave, 'Série': serie, 'Número NF': nNF, 'Data Emissão': dhEmi,
-                        'Natureza Operação': natOp, 'Emitente': emit_nome, 'CNPJ Emitente': emit_cnpj,
-                        'Destinatário': dest_nome, 'CNPJ Destinatário': dest_cnpj, 'Valor Total NF': vNF,
-                        'Código Produto': item['cProd'], 'Descrição Produto': item['xProd'],
-                        'Quantidade': item['qCom'], 'Valor Unitário': item['vUnCom'], 'Valor Total Item': item['vProd'],
-                    })
-            else:
-                dados_detalhado.append({
-                    'Chave': chave, 'Série': serie, 'Número NF': nNF, 'Data Emissão': dhEmi,
-                    'Natureza Operação': natOp, 'Emitente': emit_nome, 'CNPJ Emitente': emit_cnpj,
-                    'Destinatário': dest_nome, 'CNPJ Destinatário': dest_cnpj, 'Valor Total NF': vNF,
-                    'Código Produto': '', 'Descrição Produto': '', 'Quantidade': '', 'Valor Unitário': '', 'Valor Total Item': '',
+                if prod is None:
+                    continue
+                
+                # Dados do produto
+                cProd = prod.find('nfe:cProd', ns).text if prod.find('nfe:cProd', ns) is not None else ''
+                xProd = prod.find('nfe:xProd', ns).text if prod.find('nfe:xProd', ns) is not None else ''
+                NCM = prod.find('nfe:NCM', ns).text if prod.find('nfe:NCM', ns) is not None else ''
+                CEST = prod.find('nfe:CEST', ns).text if prod.find('nfe:CEST', ns) is not None else ''
+                CFOP = prod.find('nfe:CFOP', ns).text if prod.find('nfe:CFOP', ns) is not None else ''
+                uCom = prod.find('nfe:uCom', ns).text if prod.find('nfe:uCom', ns) is not None else ''
+                qCom = prod.find('nfe:qCom', ns).text if prod.find('nfe:qCom', ns) is not None else ''
+                vUnCom = prod.find('nfe:vUnCom', ns).text if prod.find('nfe:vUnCom', ns) is not None else ''
+                vProd = prod.find('nfe:vProd', ns).text if prod.find('nfe:vProd', ns) is not None else ''
+                
+                # Impostos do item
+                imposto = det.find('nfe:imposto', ns)
+                ICMS = None
+                if imposto is not None:
+                    ICMS = imposto.find('.//nfe:ICMS', ns)
+                
+                # Extraindo valores do ICMS (pode ser ICMS00, ICMS10, ICMS40, etc.)
+                vICMS_item = '0'
+                pICMS_item = '0'
+                vBC_item = '0'
+                if ICMS is not None:
+                    for child in ICMS:
+                        if child.tag.endswith('ICMS00') or child.tag.endswith('ICMS10') or child.tag.endswith('ICMS20') or child.tag.endswith('ICMS40') or child.tag.endswith('ICMS51'):
+                            vICMS_item = child.find('nfe:vICMS', ns).text if child.find('nfe:vICMS', ns) is not None else '0'
+                            pICMS_item = child.find('nfe:pICMS', ns).text if child.find('nfe:pICMS', ns) is not None else '0'
+                            vBC_item = child.find('nfe:vBC', ns).text if child.find('nfe:vBC', ns) is not None else '0'
+                            break
+                
+                # IPI
+                IPI = imposto.find('nfe:IPI', ns) if imposto is not None else None
+                vIPI_item = '0'
+                if IPI is not None:
+                    ipiTrib = IPI.find('nfe:IPITrib', ns)
+                    if ipiTrib is not None:
+                        vIPI_item = ipiTrib.find('nfe:vIPI', ns).text if ipiTrib.find('nfe:vIPI', ns) is not None else '0'
+                
+                # PIS
+                PIS = imposto.find('nfe:PIS', ns) if imposto is not None else None
+                vPIS_item = '0'
+                if PIS is not None:
+                    pisAliq = PIS.find('nfe:PISAliq', ns)
+                    if pisAliq is not None:
+                        vPIS_item = pisAliq.find('nfe:vPIS', ns).text if pisAliq.find('nfe:vPIS', ns) is not None else '0'
+                    else:
+                        pisNT = PIS.find('nfe:PISNT', ns)
+                        if pisNT is not None:
+                            vPIS_item = '0'
+                
+                # COFINS
+                COFINS = imposto.find('nfe:COFINS', ns) if imposto is not None else None
+                vCOFINS_item = '0'
+                if COFINS is not None:
+                    cofinsAliq = COFINS.find('nfe:COFINSAliq', ns)
+                    if cofinsAliq is not None:
+                        vCOFINS_item = cofinsAliq.find('nfe:vCOFINS', ns).text if cofinsAliq.find('nfe:vCOFINS', ns) is not None else '0'
+                
+                itens.append({
+                    'Chave NF-e': nfe.chave_acesso,
+                    'Série': serie,
+                    'Número NF': nNF,
+                    'Data Emissão': dhEmi,
+                    'Código Produto': cProd,
+                    'Descrição Produto': xProd,
+                    'NCM': NCM,
+                    'CEST': CEST,
+                    'CFOP': CFOP,
+                    'Unidade': uCom,
+                    'Quantidade': qCom,
+                    'Valor Unitário (R$)': vUnCom,
+                    'Valor Total Item (R$)': vProd,
+                    'ICMS (R$)': vICMS_item,
+                    'Alíquota ICMS (%)': pICMS_item,
+                    'Base ICMS (R$)': vBC_item,
+                    'IPI (R$)': vIPI_item,
+                    'PIS (R$)': vPIS_item,
+                    'COFINS (R$)': vCOFINS_item,
                 })
+                
         except Exception as e:
-            dados_detalhado.append({'Chave': nfe.chave_acesso, 'Erro': str(e)})
-
-    df_detalhado = pd.DataFrame(dados_detalhado) if dados_detalhado else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
-    df_xml = pd.DataFrame(dados_xml) if dados_xml else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
-
+            # Se falhar, adiciona erro nas listas
+            notas_resumo.append({'Chave': nfe.chave_acesso, 'Erro no processamento': str(e)})
+            itens.append({'Chave NF-e': nfe.chave_acesso, 'Erro no processamento': str(e)})
+    
+    # Cria DataFrames
+    df_notas = pd.DataFrame(notas_resumo) if notas_resumo else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
+    df_itens = pd.DataFrame(itens) if itens else pd.DataFrame({'Mensagem': ['Nenhum item encontrado.']})
+    df_xml = pd.DataFrame(xml_completo) if xml_completo else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
+    
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="relatorio_nfes.xlsx"'
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        df_detalhado.to_excel(writer, index=False, sheet_name='Detalhado')
+        df_notas.to_excel(writer, index=False, sheet_name='Resumo Notas')
+        df_itens.to_excel(writer, index=False, sheet_name='Itens Notas')
         df_xml.to_excel(writer, index=False, sheet_name='XML Completo')
-        # Ajustes de largura
-        worksheet = writer.sheets['Detalhado']
-        for column in worksheet.columns:
-            max_len = 0
-            col_letter = column[0].column_letter
-            for cell in column:
-                if cell.value:
-                    max_len = max(max_len, len(str(cell.value)))
-            worksheet.column_dimensions[col_letter].width = min(max_len + 2, 50)
-        if 'XML Completo' in writer.sheets:
-            ws_xml = writer.sheets['XML Completo']
-            ws_xml.column_dimensions['A'].width = 45
-            ws_xml.column_dimensions['B'].width = 80
+        
+        # Ajuste de largura das colunas para cada planilha
+        for sheet_name in ['Resumo Notas', 'Itens Notas', 'XML Completo']:
+            worksheet = writer.sheets[sheet_name]
+            for column in worksheet.columns:
+                max_len = 0
+                col_letter = column[0].column_letter
+                for cell in column:
+                    if cell.value:
+                        max_len = max(max_len, len(str(cell.value)))
+                adjusted_width = min(max_len + 2, 50)
+                worksheet.column_dimensions[col_letter].width = adjusted_width
+            # Para a planilha XML, a coluna do XML pode ser maior
+            if sheet_name == 'XML Completo':
+                worksheet.column_dimensions['B'].width = 80
+    
     return response
-
 
 @login_required
 def stats(request):
