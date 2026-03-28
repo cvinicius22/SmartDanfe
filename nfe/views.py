@@ -637,34 +637,26 @@ def payment_webhook(request):
     try:
         payment_info = sdk.payment().get(payment_id)
         print("Status da consulta:", payment_info.get('status'))
-
         if payment_info['status'] != 200:
             print("Erro na consulta. Resposta:", payment_info)
             return JsonResponse({'status': 'ok'})
-
         payment_data = payment_info['response']
         status = payment_data.get('status')
         preference_id = payment_data.get('preference_id')
         external_reference = payment_data.get('external_reference')
-
-        print(f"Status retornado: {status}")
-        print(f"Preference ID retornado: {preference_id}")
-        print(f"External Reference retornado: {external_reference}")
-
+        print(f"Status: {status}, Preference ID: {preference_id}, External Reference: {external_reference}")
     except Exception as e:
         print("Erro ao consultar pagamento na API:", e)
         return JsonResponse({'status': 'ok'})
 
-    # --- Busca o pagamento no banco de dados ---
+    # --- Busca o pagamento no banco de dados (prioridades) ---
     payment = None
-
-    # 1. Busca pelo preference_id (único e confiável)
+    # 1. Busca por preference_id (único)
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id).first()
         if payment:
             print(f"Encontrado por preference_id: {payment.id}")
-
-    # 2. Se não achou, busca pelo external_reference (pendentes, mais recente)
+    # 2. Busca por external_reference (pendente, mais recente)
     if not payment and external_reference:
         payments = Payment.objects.filter(
             external_reference=external_reference,
@@ -673,8 +665,7 @@ def payment_webhook(request):
         if payments.exists():
             payment = payments.first()
             print(f"Encontrado por external_reference: {payment.id}")
-
-    # 3. Se ainda não achou, busca pelo payment_id (caso o registro já tenha esse ID)
+    # 3. Busca por payment_id (se já tiver sido salvo)
     if not payment and payment_id:
         payment = Payment.objects.filter(payment_id=payment_id).first()
         if payment:
@@ -684,15 +675,15 @@ def payment_webhook(request):
         print("Pagamento não encontrado no banco!")
         return JsonResponse({'status': 'ok'})
 
-    # --- Atualiza o status e ativa a assinatura se aprovado ---
+    # --- Atualiza o status ---
     print(f"Status anterior: {payment.status}")
     payment.status = status.upper()
     payment.payment_id = payment_id
     payment.save()
     print(f"Status atualizado para: {payment.status}")
 
+    # --- Ativa a assinatura se aprovado ---
     if status == 'approved':
-        # Obtém ou cria o perfil do usuário (garantia)
         try:
             profile = payment.user.profile
         except UserProfile.DoesNotExist:
@@ -701,8 +692,7 @@ def payment_webhook(request):
 
         profile.subscription_active = True
         profile.plan = payment.plan
-
-        # Define a data de expiração conforme o plano
+        # Define a validade conforme o plano
         if payment.plan == 'mensal':
             days = 30
         elif payment.plan == 'trimestral':
@@ -711,13 +701,11 @@ def payment_webhook(request):
             days = 365
         else:
             days = 30
-
         profile.subscription_until = datetime.now() + timedelta(days=days)
         profile.save()
         print(f"Assinatura ativada para {payment.user.username} até {profile.subscription_until}")
 
     return JsonResponse({'status': 'ok'})
-
 
 
 @login_required
