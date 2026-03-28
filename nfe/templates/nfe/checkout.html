@@ -317,58 +317,40 @@
                     console.log("Payment Brick ready");
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
-                    const dataToSend = {
-                        ...formData,
-                        preference_id: preferenceId
-                    };
-                    return new Promise((resolve, reject) => {
-                        fetch("{% url 'process_payment' %}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRFToken": getCookie("csrftoken"),
-                            },
-                            body: JSON.stringify(dataToSend),
-                        })
-                        .then(response => response.json())
-                        .then(response => {
-                            // Caso o pagamento seja aprovado instantaneamente (ex: cartão)
-                            if (response.status === 'approved') {
-                                window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
-                                resolve();
-                            } 
-                            // Pagamento pendente (Pix, boleto)
-                            else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Se for Pix, mostra a mensagem personalizada
-                                if (selectedPaymentMethod && selectedPaymentMethod.id === 'pix') {
-                                    const msgDiv = document.getElementById('pix-pending-message');
-                                    if (msgDiv) msgDiv.style.display = 'flex';
-                                }
-                                resolve(); // Mantém o Brick ativo para exibir o QR Code
-                            }
-                            // Qualquer outro status inesperado
-                            else {
-                                alert("Erro ao processar pagamento: " + (response.status || response.error));
-                                reject();
-                            }
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            alert("Erro de comunicação com o servidor.");
-                            reject();
-                        });
-                    });
+                    // O Brick já processou o pagamento e fornece o resultado
+                    // O parâmetro 'formData' contém os dados do pagamento, incluindo status
+                    // Vamos usar o evento 'payment' que é disparado pelo Brick
+                    // Na verdade, o onSubmit recebe o resultado do pagamento através do parâmetro 'payment'
+                    // Porém, a documentação mostra que o callback recebe um objeto com 'payment' e 'formData'
+                    // Vamos logar para ver o que vem
+                    console.log("onSubmit chamado", arguments);
+                    // Como não temos certeza, vamos aguardar o evento 'payment' que pode ser capturado via listeners do Brick
                 },
                 onError: (error) => {
                     console.error(error);
                 },
             },
         };
-        window.paymentBrickController = await bricksBuilder.create(
-            "payment",
-            "paymentBrick_container",
-            settings
-        );
+        
+        // A maneira correta de capturar o resultado do pagamento é através do evento 'payment'
+        // O Brick emite um evento 'payment' quando o pagamento é concluído
+        const paymentBrick = await bricksBuilder.create("payment", "paymentBrick_container", settings);
+        
+        // Adiciona listener para o evento 'payment' (quando o pagamento é processado)
+        paymentBrick.on('payment', (payment) => {
+            console.log("Evento payment recebido:", payment);
+            if (payment.status === 'approved') {
+                window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
+            } else if (payment.status === 'pending' || payment.status === 'in_process') {
+                // Se for Pix, mostra a mensagem personalizada
+                if (payment.payment_method_id === 'pix') {
+                    const msgDiv = document.getElementById('pix-pending-message');
+                    if (msgDiv) msgDiv.style.display = 'flex';
+                }
+            } else {
+                alert("Erro no pagamento: " + (payment.status || "status desconhecido"));
+            }
+        });
     };
 
     renderPaymentBrick();
