@@ -207,10 +207,23 @@
             gap: 2rem;
         }
         .footer-main p {
-            margin: 0.25rem 0;
+            margin: 0.5rem 0;
         }
         .footer-main p:first-child {
             font-weight: 600;
+            color: white;
+        }
+        .footer-email {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .footer-email a {
+            color: var(--primary-light, #38bdf8);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .footer-email a:hover {
+            text-decoration: underline;
             color: white;
         }
         .footer-badges {
@@ -353,6 +366,10 @@
             <div class="footer-main">
                 <p>&copy; {% now "Y" %} SmartDanfe - Soluções em Logística</p>
                 <p>Transforme suas notas fiscais eletrônicas em PDF e XML com facilidade e segurança.</p>
+                <p class="footer-email">
+                    <i class="fas fa-envelope"></i> 
+                    <a href="mailto:logistechinsights@gmail.com">logistechinsights@gmail.com</a>
+                </p>
             </div>
             <div class="footer-badges">
                 <div class="badge mercadopago">
