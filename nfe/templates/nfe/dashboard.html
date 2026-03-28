@@ -6,14 +6,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
     /* =======================================================
-       VARIÁVEIS (modernas e vibrantes)
+       VARIÁVEIS – Paleta moderna e consistente
        ======================================================= */
     :root {
         --primary: #0ea5e9;
         --primary-dark: #0284c7;
         --primary-light: #7dd3fc;
+        --primary-soft: #e0f2fe;
         --secondary: #f97316;
         --success: #10b981;
+        --success-dark: #059669;
         --success-light: #d1fae5;
         --warning: #f59e0b;
         --danger: #ef4444;
@@ -31,8 +33,12 @@
         --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
         --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-        --radius: 1rem;
-        --transition: all 0.2s ease;
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+        --radius-sm: 0.5rem;
+        --radius-md: 1rem;
+        --radius-lg: 1.5rem;
+        --radius-xl: 2rem;
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* =======================================================
@@ -45,31 +51,34 @@
     }
 
     /* =======================================================
-       CARD DE ENTRADA
+       CARD DE ENTRADA – Glassmorphism leve
        ======================================================= */
     .input-card {
-        background: white;
-        border-radius: 1.5rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(4px);
+        border-radius: var(--radius-lg);
         box-shadow: var(--shadow-md);
-        padding: 1.5rem;
+        padding: 1.75rem;
         margin-bottom: 2rem;
         transition: var(--transition);
-        border: 1px solid rgba(0,0,0,0.03);
+        border: 1px solid rgba(14,165,233,0.1);
     }
     .input-card:hover {
         box-shadow: var(--shadow-lg);
         transform: translateY(-2px);
+        border-color: rgba(14,165,233,0.2);
     }
     .input-card textarea {
         width: 100%;
         padding: 1rem;
         border: 1px solid var(--gray-200);
-        border-radius: 1rem;
+        border-radius: var(--radius-md);
         font-family: 'Fira Code', monospace;
         font-size: 0.875rem;
         resize: vertical;
         transition: var(--transition);
         background: var(--gray-50);
+        line-height: 1.5;
     }
     .input-card textarea:focus {
         outline: none;
@@ -80,11 +89,11 @@
     .button-group {
         display: flex;
         gap: 1rem;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
         flex-wrap: wrap;
     }
     .btn {
-        padding: 0.6rem 1.2rem;
+        padding: 0.6rem 1.5rem;
         border-radius: 2rem;
         font-weight: 600;
         font-size: 0.875rem;
@@ -94,6 +103,7 @@
         cursor: pointer;
         transition: var(--transition);
         border: none;
+        letter-spacing: 0.3px;
     }
     .btn-primary {
         background: linear-gradient(135deg, var(--primary), #06b6d4);
@@ -103,6 +113,7 @@
     .btn-primary:hover:not(:disabled) {
         transform: translateY(-1px);
         box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, #1e88e5, #0ea5e9);
     }
     .btn-secondary {
         background: var(--gray-100);
@@ -110,82 +121,109 @@
     }
     .btn-secondary:hover {
         background: var(--gray-200);
+        transform: translateY(-1px);
     }
 
     /* =======================================================
-       CARDS DE ESTATÍSTICAS (modernos e compactos)
+       CARDS DE ESTATÍSTICAS – Títulos acima dos valores
        ======================================================= */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
+        gap: 1.25rem;
         margin-bottom: 2rem;
     }
     .stat-card {
         background: white;
-        border-radius: 1.25rem;
-        padding: 1rem 1.25rem;
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
         display: flex;
-        align-items: center;
+        flex-direction: column;
         gap: 0.75rem;
         box-shadow: var(--shadow-sm);
         transition: var(--transition);
         border: 1px solid var(--gray-100);
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        opacity: 0;
+        transition: opacity 0.3s;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
         box-shadow: var(--shadow-md);
+        border-color: var(--gray-200);
+    }
+    .stat-card:hover::after {
+        opacity: 1;
+    }
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
     }
     .stat-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         color: white;
+        transition: transform 0.2s;
     }
-    .stat-total .stat-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-    .stat-ready .stat-icon { background: linear-gradient(135deg, #10b981, #34d399); }
-    .stat-processing .stat-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
-    .stat-value .stat-icon { background: linear-gradient(135deg, #0ea5e9, #06b6d4); }
-
-    .stat-info {
-        flex: 1;
+    .stat-card:hover .stat-icon {
+        transform: scale(1.02);
+    }
+    .stat-total .stat-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 12px -4px #6366f1; }
+    .stat-ready .stat-icon { background: linear-gradient(135deg, var(--success), #34d399); box-shadow: 0 4px 12px -4px var(--success); }
+    .stat-processing .stat-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 12px -4px #f59e0b; }
+    .stat-value .stat-icon { background: linear-gradient(135deg, var(--primary), #06b6d4); box-shadow: 0 4px 12px -4px var(--primary); }
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--gray-500);
     }
     .stat-value {
         font-size: 1.75rem;
         font-weight: 800;
         line-height: 1.2;
         color: var(--gray-800);
-    }
-    .stat-label {
-        font-size: 0.7rem;
-        color: var(--gray-500);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
+        letter-spacing: -0.01em;
     }
 
     /* =======================================================
-       GRÁFICOS
+       GRÁFICOS – Cards com transparência e bordas suaves
        ======================================================= */
     .charts-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+        gap: 1.25rem;
         margin-bottom: 2rem;
     }
     .chart-card {
         background: white;
-        border-radius: 1.25rem;
+        border-radius: var(--radius-lg);
         box-shadow: var(--shadow-sm);
-        padding: 1rem;
+        padding: 1.25rem;
         transition: var(--transition);
+        border: 1px solid var(--gray-100);
     }
     .chart-card:hover {
         box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
     }
     .chart-card h3 {
         font-size: 0.9rem;
@@ -202,11 +240,11 @@
     }
 
     /* =======================================================
-       RESULTADOS
+       RESULTADOS – Lista moderna com hover e animação
        ======================================================= */
     .results-card {
         background: white;
-        border-radius: 1.5rem;
+        border-radius: var(--radius-lg);
         box-shadow: var(--shadow-md);
         padding: 1.5rem;
         margin-bottom: 2rem;
@@ -215,7 +253,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
         flex-wrap: wrap;
         gap: 0.5rem;
     }
@@ -228,38 +266,41 @@
     }
     .results-badge {
         background: var(--gray-100);
-        padding: 0.25rem 0.75rem;
+        padding: 0.3rem 0.9rem;
         border-radius: 2rem;
         font-size: 0.75rem;
         font-weight: 600;
         color: var(--gray-600);
     }
     .results-list {
-        max-height: 400px;
+        max-height: 450px;
         overflow-y: auto;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
     }
     .result-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem;
+        padding: 0.75rem 0.5rem;
         border-bottom: 1px solid var(--gray-100);
-        transition: background 0.2s;
+        transition: all 0.2s;
+        border-radius: var(--radius-sm);
     }
     .result-item:hover {
         background: var(--gray-50);
+        transform: translateX(4px);
     }
     .result-info {
         flex: 1;
         overflow: hidden;
     }
     .result-key {
-        font-family: monospace;
+        font-family: 'Fira Code', monospace;
         font-weight: 600;
         font-size: 0.8rem;
         margin-bottom: 0.2rem;
         color: var(--gray-700);
+        letter-spacing: -0.2px;
     }
     .result-details {
         display: flex;
@@ -269,7 +310,7 @@
     }
     .result-type {
         background: var(--gray-100);
-        padding: 0.15rem 0.5rem;
+        padding: 0.15rem 0.6rem;
         border-radius: 1rem;
         font-size: 0.65rem;
         font-weight: 600;
@@ -285,11 +326,12 @@
         align-items: center;
     }
     .status-badge {
-        padding: 0.2rem 0.6rem;
+        padding: 0.2rem 0.7rem;
         border-radius: 2rem;
         font-size: 0.65rem;
         font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
     .status-processing { background: #fef3c7; color: #d97706; }
     .status-success { background: #d1fae5; color: #059669; }
@@ -299,18 +341,20 @@
         background: var(--success);
         border: none;
         color: white;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
         cursor: pointer;
-        transition: var(--transition);
+        transition: all 0.2s;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-shadow: var(--shadow-sm);
     }
     .download-btn:hover {
-        transform: scale(1.05);
-        background: #059669;
+        transform: scale(1.08);
+        background: var(--success-dark);
+        box-shadow: var(--shadow-md);
     }
     .download-btn.xml-btn {
         background: var(--primary);
@@ -324,11 +368,11 @@
         justify-content: flex-end;
         flex-wrap: wrap;
         border-top: 1px solid var(--gray-100);
-        padding-top: 1rem;
+        padding-top: 1.25rem;
     }
 
     /* =======================================================
-       LOADING OVERLAY
+       LOADING OVERLAY – Suave e elegante
        ======================================================= */
     .loading-overlay {
         position: fixed;
@@ -337,7 +381,7 @@
         width: 100%;
         height: 100%;
         background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
         z-index: 1000;
         display: none;
         align-items: center;
@@ -345,12 +389,13 @@
     }
     .loading-spinner {
         background: white;
-        padding: 1.5rem;
-        border-radius: 1.5rem;
+        padding: 1.5rem 2rem;
+        border-radius: var(--radius-lg);
         text-align: center;
+        box-shadow: var(--shadow-xl);
     }
     .loading-spinner i {
-        font-size: 2rem;
+        font-size: 2.2rem;
         color: var(--primary);
         animation: spin 1s linear infinite;
     }
@@ -360,28 +405,28 @@
     }
 
     /* =======================================================
-       TOAST NOTIFICATIONS
+       TOAST NOTIFICATIONS – Modernas e responsivas
        ======================================================= */
     .toast-container {
         position: fixed;
-        bottom: 1rem;
-        right: 1rem;
+        bottom: 1.5rem;
+        right: 1.5rem;
         z-index: 1100;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
     .toast {
         background: white;
         border-left: 4px solid;
-        border-radius: 0.75rem;
-        padding: 0.75rem 1rem;
-        min-width: 280px;
+        border-radius: var(--radius-md);
+        padding: 0.85rem 1rem;
+        min-width: 300px;
         box-shadow: var(--shadow-lg);
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        animation: slideIn 0.3s ease;
+        animation: slideIn 0.3s ease forwards;
     }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--danger); }
@@ -392,14 +437,14 @@
     .toast.error i { color: var(--danger); }
     .toast.warning i { color: var(--warning); }
     .toast.info i { color: var(--primary); }
-    .toast-content { flex: 1; font-size: 0.875rem; font-weight: 500; }
+    .toast-content { flex: 1; font-size: 0.875rem; font-weight: 500; color: var(--gray-700); }
     @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
     }
 
     /* =======================================================
-       RESPONSIVIDADE
+       RESPONSIVIDADE – Adaptação total
        ======================================================= */
     @media (max-width: 1024px) {
         .stats-grid {
@@ -418,7 +463,7 @@
         }
         .result-item {
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.75rem;
             text-align: center;
         }
         .result-actions {
@@ -441,7 +486,26 @@
         }
         .toast {
             width: 100%;
+            min-width: auto;
         }
+    }
+
+    /* =======================================================
+       DETALHES ADICIONAIS – Scrollbar customizada
+       ======================================================= */
+    .results-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .results-list::-webkit-scrollbar-track {
+        background: var(--gray-100);
+        border-radius: 10px;
+    }
+    .results-list::-webkit-scrollbar-thumb {
+        background: var(--gray-300);
+        border-radius: 10px;
+    }
+    .results-list::-webkit-scrollbar-thumb:hover {
+        background: var(--gray-400);
     }
 </style>
 {% endblock %}
@@ -468,35 +532,35 @@
         </div>
     </div>
 
-    <!-- Cards de estatísticas -->
+    <!-- Cards de estatísticas (títulos acima dos valores) -->
     <div class="stats-grid">
         <div class="stat-card stat-total">
-            <div class="stat-icon"><i class="fas fa-key"></i></div>
-            <div class="stat-info">
-                <div class="stat-value" id="total">0</div>
-                <div class="stat-label">Total de Chaves</div>
+            <div class="stat-header">
+                <div class="stat-icon"><i class="fas fa-key"></i></div>
+                <span class="stat-label">Total de Chaves</span>
             </div>
+            <div class="stat-value" id="total">0</div>
         </div>
         <div class="stat-card stat-ready">
-            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="stat-info">
-                <div class="stat-value" id="ready">0</div>
-                <div class="stat-label">PDFs Prontos</div>
+            <div class="stat-header">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <span class="stat-label">PDFs Prontos</span>
             </div>
+            <div class="stat-value" id="ready">0</div>
         </div>
         <div class="stat-card stat-processing">
-            <div class="stat-icon"><i class="fas fa-sync-alt"></i></div>
-            <div class="stat-info">
-                <div class="stat-value" id="processing">0</div>
-                <div class="stat-label">Em Processamento</div>
+            <div class="stat-header">
+                <div class="stat-icon"><i class="fas fa-sync-alt"></i></div>
+                <span class="stat-label">Em Processamento</span>
             </div>
+            <div class="stat-value" id="processing">0</div>
         </div>
         <div class="stat-card stat-value">
-            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
-            <div class="stat-info">
-                <div class="stat-value" id="total-value">R$ 0,00</div>
-                <div class="stat-label">Valor Total (NF-e OK)</div>
+            <div class="stat-header">
+                <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                <span class="stat-label">Valor Total</span>
             </div>
+            <div class="stat-value" id="total-value">R$ 0,00</div>
         </div>
     </div>
 
