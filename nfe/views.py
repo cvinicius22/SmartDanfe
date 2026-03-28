@@ -592,7 +592,7 @@ def payment_webhook(request):
 
     print("=== WEBHOOK CHAMADO ===")
 
-    # Validação de assinatura (se tiver a chave secreta)
+    # --- Validação de assinatura (opcional) ---
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     query_params = urllib.parse.parse_qs(request.GET.urlencode())
@@ -617,7 +617,7 @@ def payment_webhook(request):
             print("Falha na validação da assinatura")
             return JsonResponse({'status': 'ok'})
 
-    # Processa o corpo da notificação
+    # --- Processa o corpo da notificação ---
     try:
         data = json.loads(request.body)
         print("Dados recebidos:", data)
@@ -630,15 +630,16 @@ def payment_webhook(request):
         return JsonResponse({'status': 'ok'})
 
     payment_id = data['data']['id']
-    print(f"Payment ID: {payment_id}")
+    print(f"Payment ID recebido: {payment_id}")
 
-    # Consulta os detalhes do pagamento no Mercado Pago
+    # --- Consulta os detalhes do pagamento no Mercado Pago ---
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     try:
         payment_info = sdk.payment().get(payment_id)
         print("Status da consulta:", payment_info.get('status'))
+
         if payment_info['status'] != 200:
-            print("Falha ao obter informações do pagamento.")
+            print("Erro na consulta. Resposta:", payment_info)
             return JsonResponse({'status': 'ok'})
 
         payment_data = payment_info['response']
@@ -646,59 +647,78 @@ def payment_webhook(request):
         preference_id = payment_data.get('preference_id')
         external_reference = payment_data.get('external_reference')
 
-        print(f"Preference ID: {preference_id}")
-        print(f"External Reference: {external_reference}")
-
-        # Busca pelo preference_id (único)
-        payment = None
-        if preference_id:
-            payment = Payment.objects.filter(preference_id=preference_id).first()
-            if payment:
-                print(f"Encontrado por preference_id: {payment.id}")
-
-        # Se não encontrou, busca pelo external_reference (apenas pendentes, o mais recente)
-        if not payment and external_reference:
-            payments = Payment.objects.filter(
-                external_reference=external_reference,
-                status='PENDING'
-            ).order_by('-created_at')
-            if payments.exists():
-                payment = payments.first()
-                print(f"Encontrado por external_reference: {payment.id}")
-
-        if not payment:
-            print("Pagamento não encontrado no banco!")
-            return JsonResponse({'status': 'ok'})
-
-        # Atualiza o status e o payment_id
-        print(f"Status anterior: {payment.status}")
-        payment.status = status.upper()
-        payment.payment_id = payment_id
-        payment.save()
-        print(f"Status atualizado para: {payment.status}")
-
-        # Se aprovado, ativa a assinatura
-        if status == 'approved':
-            profile = payment.user.profile
-            profile.subscription_active = True
-            profile.plan = payment.plan
-            # Define a data de expiração baseada no plano
-            if payment.plan == 'mensal':
-                days = 30
-            elif payment.plan == 'trimestral':
-                days = 90
-            elif payment.plan == 'anual':
-                days = 365
-            else:
-                days = 30
-            profile.subscription_until = datetime.now() + timedelta(days=days)
-            profile.save()
-            print(f"Assinatura ativada para {payment.user.username} até {profile.subscription_until}")
+        print(f"Status retornado: {status}")
+        print(f"Preference ID retornado: {preference_id}")
+        print(f"External Reference retornado: {external_reference}")
 
     except Exception as e:
-        print("Erro no processamento do webhook:", e)
+        print("Erro ao consultar pagamento na API:", e)
+        return JsonResponse({'status': 'ok'})
+
+    # --- Busca o pagamento no banco de dados ---
+    payment = None
+
+    # 1. Busca pelo preference_id (único e confiável)
+    if preference_id:
+        payment = Payment.objects.filter(preference_id=preference_id).first()
+        if payment:
+            print(f"Encontrado por preference_id: {payment.id}")
+
+    # 2. Se não achou, busca pelo external_reference (pendentes, mais recente)
+    if not payment and external_reference:
+        payments = Payment.objects.filter(
+            external_reference=external_reference,
+            status='PENDING'
+        ).order_by('-created_at')
+        if payments.exists():
+            payment = payments.first()
+            print(f"Encontrado por external_reference: {payment.id}")
+
+    # 3. Se ainda não achou, busca pelo payment_id (caso o registro já tenha esse ID)
+    if not payment and payment_id:
+        payment = Payment.objects.filter(payment_id=payment_id).first()
+        if payment:
+            print(f"Encontrado por payment_id: {payment.id}")
+
+    if not payment:
+        print("Pagamento não encontrado no banco!")
+        return JsonResponse({'status': 'ok'})
+
+    # --- Atualiza o status e ativa a assinatura se aprovado ---
+    print(f"Status anterior: {payment.status}")
+    payment.status = status.upper()
+    payment.payment_id = payment_id
+    payment.save()
+    print(f"Status atualizado para: {payment.status}")
+
+    if status == 'approved':
+        # Obtém ou cria o perfil do usuário (garantia)
+        try:
+            profile = payment.user.profile
+        except UserProfile.DoesNotExist:
+            profile = UserProfile.objects.create(user=payment.user)
+            print("Perfil criado automaticamente")
+
+        profile.subscription_active = True
+        profile.plan = payment.plan
+
+        # Define a data de expiração conforme o plano
+        if payment.plan == 'mensal':
+            days = 30
+        elif payment.plan == 'trimestral':
+            days = 90
+        elif payment.plan == 'anual':
+            days = 365
+        else:
+            days = 30
+
+        profile.subscription_until = datetime.now() + timedelta(days=days)
+        profile.save()
+        print(f"Assinatura ativada para {payment.user.username} até {profile.subscription_until}")
 
     return JsonResponse({'status': 'ok'})
+
+
 
 @login_required
 def pending_payments(request):
