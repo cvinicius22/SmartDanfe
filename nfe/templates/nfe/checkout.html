@@ -38,7 +38,7 @@
             <div id="paymentBrick_container"></div>
         </div>
 
-        <!-- Mensagem personalizada para pagamento via Pix pendente -->
+        <!-- Mensagem personalizada que será exibida imediatamente ao clicar em Pagar via Pix -->
         <div id="pix-pending-message" class="pix-message" style="display: none;">
             <div class="pix-message-icon">
                 <i class="fas fa-envelope"></i>
@@ -317,6 +317,12 @@
                     console.log("Payment Brick ready");
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
+                    // Se for Pix, mostra a mensagem imediatamente (sem aguardar resposta)
+                    if (selectedPaymentMethod && selectedPaymentMethod.id === 'pix') {
+                        const msgDiv = document.getElementById('pix-pending-message');
+                        if (msgDiv) msgDiv.style.display = 'flex';
+                    }
+
                     const dataToSend = {
                         ...formData,
                         preference_id: preferenceId
@@ -340,13 +346,9 @@
                                 resolve();
                             } 
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Verifica se é Pix (pode ser pelo selectedPaymentMethod ou pelo payment_method_id na resposta)
-                                const isPix = (selectedPaymentMethod && selectedPaymentMethod.id === 'pix') || 
-                                              (response.payment_method_id === 'pix');
-                                if (isPix) {
-                                    console.log("Exibindo mensagem Pix pendente");
-                                    const msgDiv = document.getElementById('pix-pending-message');
-                                    if (msgDiv) msgDiv.style.display = 'flex';
+                                // Já mostramos a mensagem para Pix; para outros métodos, não fazemos nada especial
+                                if (!(selectedPaymentMethod && selectedPaymentMethod.id === 'pix')) {
+                                    // Se for boleto ou outro, pode exibir uma mensagem genérica se quiser
                                 }
                                 resolve(); // Mantém o Brick ativo
                             }
