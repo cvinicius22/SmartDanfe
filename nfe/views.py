@@ -592,7 +592,7 @@ def payment_webhook(request):
 
     print("=== WEBHOOK CHAMADO ===")
 
-    # Validação de assinatura (opcional)
+    # Validação de assinatura (opcional, só se tiver a chave secreta configurada)
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     query_params = urllib.parse.parse_qs(request.GET.urlencode())
@@ -617,6 +617,7 @@ def payment_webhook(request):
             print("Falha na validação da assinatura")
             return JsonResponse({'status': 'ok'})
 
+    # Processa o corpo da notificação
     try:
         data = json.loads(request.body)
         print("Dados recebidos:", data)
@@ -631,9 +632,13 @@ def payment_webhook(request):
     payment_id = data['data']['id']
     print(f"Payment ID: {payment_id}")
 
+    # Consulta os detalhes do pagamento no Mercado Pago
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     try:
         payment_info = sdk.payment().get(payment_id)
+        print("Payment info status:", payment_info.get('status'))
+        print("Payment info response:", payment_info.get('response'))
+
         if payment_info['status'] != 200:
             print("Falha ao obter informações do pagamento. Status:", payment_info['status'])
             return JsonResponse({'status': 'ok'})
@@ -646,26 +651,35 @@ def payment_webhook(request):
         print(f"Preference ID: {preference_id}")
         print(f"External Reference: {external_reference}")
 
+        # Busca o pagamento – primeiro por preference_id (único), depois por external_reference (apenas pendentes)
         payment = None
         if preference_id:
             payment = Payment.objects.filter(preference_id=preference_id).first()
             if payment:
                 print(f"Encontrado por preference_id: {payment.id}")
+
         if not payment and external_reference:
-            payment = Payment.objects.filter(external_reference=external_reference).first()
-            if payment:
-                print(f"Encontrado por external_reference: {payment.id}")
+            # Busca apenas os pendentes e com payment_id nulo (não atualizados ainda)
+            payments = Payment.objects.filter(
+                external_reference=external_reference,
+                status='PENDING'
+            ).order_by('-created_at')
+            if payments.exists():
+                payment = payments.first()
+                print(f"Encontrado por external_reference (pendente): {payment.id}")
 
         if not payment:
             print("Pagamento não encontrado no banco!")
             return JsonResponse({'status': 'ok'})
 
+        # Atualiza o status
         print(f"Status anterior: {payment.status}")
         payment.status = status.upper()
         payment.payment_id = payment_id
         payment.save()
         print(f"Status atualizado para: {payment.status}")
 
+        # Se aprovado, ativa a assinatura
         if status == 'approved':
             profile = payment.user.profile
             profile.subscription_active = True
@@ -679,7 +693,7 @@ def payment_webhook(request):
         print("Erro no processamento do webhook:", e)
 
     return JsonResponse({'status': 'ok'})
-
+    
 
 @login_required
 def pending_payments(request):
