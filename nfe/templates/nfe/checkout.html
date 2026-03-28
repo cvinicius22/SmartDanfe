@@ -244,11 +244,6 @@
             callbacks: {
                 onReady: () => {
                     console.log("Payment Brick ready");
-                    // Remove o texto de carregamento quando o brick estiver pronto
-                    const wrapper = document.querySelector('.payment-brick-wrapper');
-                    if (wrapper && wrapper.style) {
-                        // Simplesmente deixa o brick visível
-                    }
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
                     const dataToSend = {
@@ -266,17 +261,24 @@
                         })
                         .then(response => response.json())
                         .then(response => {
+                            // Aprovado instantaneamente (ex: cartão de crédito)
                             if (response.status === 'approved') {
                                 window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
-                            } else {
-                                alert("Pagamento não aprovado: " + (response.status || response.error));
+                                resolve();
+                            } 
+                            // Pagamento pendente (Pix, boleto) – continua no Brick para exibir QR Code / código copiável
+                            else if (response.status === 'pending' || response.status === 'in_process') {
+                                resolve(); // Não redireciona, mantém na página
+                            }
+                            // Qualquer outro status ou erro
+                            else {
+                                alert("Erro ao processar pagamento: " + (response.status || response.error));
                                 reject();
                             }
-                            resolve();
                         })
                         .catch(error => {
                             console.error(error);
-                            alert("Erro ao processar pagamento");
+                            alert("Erro de comunicação com o servidor.");
                             reject();
                         });
                     });
