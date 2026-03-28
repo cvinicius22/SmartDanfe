@@ -38,7 +38,7 @@
             <div id="paymentBrick_container"></div>
         </div>
 
-        <!-- Mensagem personalizada para pagamento via Pix pendente -->
+        <!-- Mensagem personalizada para pagamento via Pix (transferência bancária) -->
         <div id="pix-pending-message" class="pix-message" style="display: none;">
             <div class="pix-message-icon">
                 <i class="fas fa-envelope"></i>
@@ -304,7 +304,7 @@
                     },
                 },
                 paymentMethods: {
-                    pix: "all",    
+                    // pix: "all", // removido conforme solicitado
                     ticket: "all",
                     creditCard: "all",
                     debitCard: "all",
@@ -317,8 +317,7 @@
                     console.log("Payment Brick ready");
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
-                    // Exibe a mensagem imediatamente se o método de pagamento for Pix
-                    // O objeto selectedPaymentMethod pode ter id ou type, tratamos ambos
+                    // Detecta se o método selecionado é Pix (mesmo dentro de bankTransfer)
                     const isPix = selectedPaymentMethod && (
                         selectedPaymentMethod.id === 'pix' ||
                         selectedPaymentMethod.type === 'pix' ||
@@ -358,7 +357,7 @@
                                 resolve();
                             } 
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Se o backend confirmar que é Pix (por segurança), já mostramos antes
+                                // Se o backend confirmar que é Pix, também exibe (fallback)
                                 if (!isPix && response.payment_method_id === 'pix') {
                                     const msgDiv = document.getElementById('pix-pending-message');
                                     if (msgDiv) msgDiv.style.display = 'flex';
