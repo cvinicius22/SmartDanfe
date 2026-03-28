@@ -38,6 +38,19 @@
             <div id="paymentBrick_container"></div>
         </div>
 
+        <!-- Mensagem personalizada para pagamento via Pix pendente -->
+        <div id="pix-pending-message" class="pix-message" style="display: none;">
+            <div class="pix-message-icon">
+                <i class="fas fa-qrcode"></i>
+            </div>
+            <div class="pix-message-content">
+                <h3>✅ Pagamento gerado com sucesso!</h3>
+                <p>Utilize o QR Code acima para pagar via Pix ou copie o código.</p>
+                <p><strong>Após o pagamento, o sistema identificará automaticamente e liberará seu acesso em instantes.</strong></p>
+                <p class="pix-tip">✉️ Um e-mail com o QR Code também foi enviado para o seu endereço cadastrado.</p>
+            </div>
+        </div>
+
         <input type="hidden" id="preference_id" value="{{ preference_id }}">
         <input type="hidden" id="public_key" value="{{ public_key }}">
     </div>
@@ -153,11 +166,9 @@
     .payment-brick-wrapper {
         padding: 2rem;
     }
-    /* Estilos customizados para o Brick do Mercado Pago */
     #paymentBrick_container {
         min-height: 400px;
     }
-    /* Mensagem de carregamento enquanto o Brick não aparece */
     .payment-brick-wrapper::before {
         content: "Carregando opções de pagamento...";
         display: block;
@@ -170,10 +181,65 @@
         display: none;
     }
 
+    /* Mensagem personalizada para Pix pendente */
+    .pix-message {
+        margin: 0 2rem 2rem 2rem;
+        background: linear-gradient(135deg, #e6f7ec 0%, #d1fae5 100%);
+        border-left: 4px solid #10b981;
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        animation: slideDown 0.3s ease-out;
+        box-shadow: var(--shadow-md);
+    }
+    .pix-message-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        background: #10b981;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pix-message-icon i {
+        font-size: 1.5rem;
+        color: white;
+    }
+    .pix-message-content h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        color: #065f46;
+    }
+    .pix-message-content p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+        color: #065f46;
+    }
+    .pix-tip {
+        font-size: 0.8rem;
+        color: #047857;
+        margin-top: 0.5rem;
+        font-style: italic;
+    }
+
     @keyframes fadeIn {
         from {
             opacity: 0;
             transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
         }
         to {
             opacity: 1;
@@ -200,6 +266,11 @@
         }
         .payment-brick-wrapper {
             padding: 1rem;
+        }
+        .pix-message {
+            margin: 1rem;
+            flex-direction: column;
+            text-align: center;
         }
     }
 </style>
@@ -261,16 +332,21 @@
                         })
                         .then(response => response.json())
                         .then(response => {
-                            // Aprovado instantaneamente (ex: cartão de crédito)
+                            // Caso o pagamento seja aprovado instantaneamente (ex: cartão)
                             if (response.status === 'approved') {
                                 window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
                                 resolve();
                             } 
-                            // Pagamento pendente (Pix, boleto) – continua no Brick para exibir QR Code / código copiável
+                            // Pagamento pendente (Pix, boleto)
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                resolve(); // Não redireciona, mantém na página
+                                // Se for Pix, mostra a mensagem personalizada
+                                if (selectedPaymentMethod && selectedPaymentMethod.id === 'pix') {
+                                    const msgDiv = document.getElementById('pix-pending-message');
+                                    if (msgDiv) msgDiv.style.display = 'flex';
+                                }
+                                resolve(); // Mantém o Brick ativo para exibir o QR Code
                             }
-                            // Qualquer outro status ou erro
+                            // Qualquer outro status inesperado
                             else {
                                 alert("Erro ao processar pagamento: " + (response.status || response.error));
                                 reject();
