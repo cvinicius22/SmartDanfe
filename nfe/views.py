@@ -410,6 +410,9 @@ def checkout(request):
             'message': 'URLs de retorno inválidas. Verifique as rotas.'
         })
 
+    # Cria a referência externa única
+    external_ref = f"{request.user.id}_{plan.id}"
+
     preference_data = {
         "items": [{
             "id": f"plan_{plan.id}",
@@ -434,7 +437,7 @@ def checkout(request):
         },
         "auto_return": "approved",
         "notification_url": notification_url,
-        "external_reference": f"{request.user.id}_{plan.id}",
+        "external_reference": external_ref,
         "binary_mode": True,
         "statement_descriptor": "SMARTDANFE",
     }
@@ -465,7 +468,8 @@ def checkout(request):
         return render(request, 'nfe/error.html', {
             'message': f'Erro interno: {str(e)}'
         })
-    external_ref = f"{request.user.id}_{plan.id}"
+
+    # Cria o registro do pagamento com external_reference
     Payment.objects.create(
         user=request.user,
         plan=plan,
@@ -483,6 +487,7 @@ def checkout(request):
         'preference_id': preference_id,
         'public_key': settings.MERCADOPAGO_PUBLIC_KEY,
     })
+
 
 @csrf_exempt
 def process_payment(request):
