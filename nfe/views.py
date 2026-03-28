@@ -625,14 +625,18 @@ def payment_webhook(request):
         return JsonResponse({'status': 'ok'})
 
     print("=== WEBHOOK CHAMADO ===")
+    
+    # --- Log do corpo bruto ---
+    raw_body = request.body.decode('utf-8')
+    print(f"Corpo bruto: {raw_body}")
 
-    # --- 1. Headers e query params para validação (opcional) ---
+    # --- Obtém headers e query params (opcional para validação) ---
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     query_params = urllib.parse.parse_qs(request.GET.urlencode())
     data_id = query_params.get('data.id', [''])[0]
 
-    # Opcional: validar assinatura se você tiver a chave secreta configurada
+    # Validação de assinatura (se configurado)
     secret = getattr(settings, 'MERCADOPAGO_WEBHOOK_SECRET', None)
     if secret:
         parts = x_signature.split(',')
@@ -650,13 +654,12 @@ def payment_webhook(request):
         computed = hmac.new(secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
         if computed != hash_v1:
             print("Falha na validação da assinatura")
-            # Ainda responde 200 para o Mercado Pago não tentar reenviar
             return JsonResponse({'status': 'ok'})
 
-    # --- 2. Processa o corpo da notificação ---
+    # --- Processa o corpo da notificação ---
     try:
-        data = json.loads(request.body)
-        print("Dados recebidos:", data)
+        data = json.loads(raw_body)
+        print("Dados parseados:", data)
     except Exception as e:
         print("Erro ao parsear JSON:", e)
         return JsonResponse({'status': 'ok'})
@@ -668,15 +671,18 @@ def payment_webhook(request):
     payment_id = data['data']['id']
     print(f"Payment ID: {payment_id}")
 
-    # --- 3. Consulta os detalhes do pagamento no Mercado Pago ---
+    # --- Consulta detalhes do pagamento no Mercado Pago ---
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     try:
         payment_info = sdk.payment().get(payment_id)
-        if payment_info['status'] != 200:
-            print("Falha ao obter informações do pagamento. Status:", payment_info['status'])
+        print(f"Resposta da API: status={payment_info.get('status')}")
+        if payment_info.get('status') != 200:
+            print("Falha ao obter informações do pagamento.")
             return JsonResponse({'status': 'ok'})
 
-        payment_data = payment_info['response']
+        payment_data = payment_info.get('response', {})
+        print("Dados do pagamento:", payment_data)
+
         status = payment_data.get('status')
         preference_id = payment_data.get('preference_id')
         external_reference = payment_data.get('external_reference')
@@ -684,7 +690,7 @@ def payment_webhook(request):
         print(f"Preference ID: {preference_id}")
         print(f"External Reference: {external_reference}")
 
-        # --- 4. Busca o pagamento no banco ---
+        # --- Busca pelo pagamento no banco ---
         payment = None
         if preference_id:
             payment = Payment.objects.filter(preference_id=preference_id).first()
@@ -694,12 +700,17 @@ def payment_webhook(request):
             payment = Payment.objects.filter(external_reference=external_reference).first()
             if payment:
                 print(f"Encontrado por external_reference: {payment.id}")
+        if not payment and payment_id:
+            # Fallback: busca pelo payment_id (caso tenha sido salvo anteriormente)
+            payment = Payment.objects.filter(payment_id=payment_id).first()
+            if payment:
+                print(f"Encontrado por payment_id: {payment.id}")
 
         if not payment:
-            print("Pagamento não encontrado no banco!")
+            print("Pagamento não encontrado no banco! Verifique os dados.")
             return JsonResponse({'status': 'ok'})
 
-        # --- 5. Atualiza status e ativa assinatura se aprovado ---
+        # --- Atualiza status e ativa assinatura ---
         print(f"Status anterior: {payment.status}")
         payment.status = status.upper()
         payment.payment_id = payment_id
@@ -710,16 +721,28 @@ def payment_webhook(request):
             profile = payment.user.profile
             profile.subscription_active = True
             profile.plan = payment.plan
-            days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
+            # Calcula dias baseado no plano
+            if payment.plan == 'mensal':
+                days = 30
+            elif payment.plan == 'trimestral':
+                days = 90
+            elif payment.plan == 'anual':
+                days = 365
+            else:
+                days = 30
             profile.subscription_until = datetime.now() + timedelta(days=days)
             profile.save()
             print(f"Assinatura ativada para {payment.user.username}")
 
     except Exception as e:
         print("Erro no processamento do webhook:", e)
+        import traceback
+        traceback.print_exc()
 
     return JsonResponse({'status': 'ok'})
-@login_required
+    
+    
+    @login_required
 def pending_payments(request):
     """Página de pagamentos pendentes (acessível mesmo sem assinatura)"""
     payments = Payment.objects.filter(user=request.user, status='PENDING').order_by('-created_at')
