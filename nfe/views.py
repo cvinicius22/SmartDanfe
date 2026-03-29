@@ -72,7 +72,7 @@ def register(request):
                 return redirect('home')
     else:
         form = CustomUserCreationForm()
-    return render(request, 'registration/register.html', {'form': form, 'plan': plan})
+    return render(request, 'registration/register.html', {'form': form, 'plan': 
 
 
 @login_required
@@ -90,7 +90,7 @@ def dashboard(request):
             profile.save()
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
     return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
-    
+
 
 @require_POST
 @csrf_exempt
@@ -758,7 +758,6 @@ def process_payment(request):
         logger.exception("Erro ao processar pagamento")
         return JsonResponse({'error': str(e)}, status=500)
 
-
 @login_required
 def payment_success(request):
     preference_id = request.GET.get('preference_id')
@@ -800,7 +799,7 @@ def payment_success(request):
 
     # Redireciona para o dashboard após alguns segundos (opcional)
     return render(request, 'nfe/payment_success.html')
-    
+
 
 @login_required
 def payment_failure(request):
