@@ -38,16 +38,16 @@
             <div id="paymentBrick_container"></div>
         </div>
 
-        <!-- Mensagem personalizada para pagamento via Pix -->
-        <div id="pix-pending-message" class="pix-message" style="display: none;">
-            <div class="pix-message-icon">
+        <!-- Mensagem personalizada para pagamento pendente (Pix / boleto) -->
+        <div id="pending-message" class="pending-message" style="display: none;">
+            <div class="pending-message-icon">
                 <i class="fas fa-envelope"></i>
             </div>
-            <div class="pix-message-content">
+            <div class="pending-message-content">
                 <h3>✅ Pagamento gerado com sucesso!</h3>
-                <p>O código Pix e o QR Code foram enviados para o e-mail cadastrado.</p>
+                <p>As instruções de pagamento (código Pix ou boleto) foram enviadas para o e-mail cadastrado.</p>
                 <p><strong>Após o pagamento, o sistema identificará automaticamente e liberará seu acesso em instantes.</strong></p>
-                <p class="pix-tip">✉️ Caso não encontre o e-mail, verifique sua caixa de spam ou entre em contato com o suporte.</p>
+                <p class="pending-tip">✉️ Caso não encontre o e-mail, verifique sua caixa de spam ou entre em contato com o suporte.</p>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
 </div>
 
 <style>
-    /* ===== VARIÁVEIS (alinhadas com base.html) ===== */
+    /* ===== VARIÁVEIS ===== */
     :root {
         --primary: #0ea5e9;
         --primary-dark: #0284c7;
@@ -181,8 +181,8 @@
         display: none;
     }
 
-    /* Mensagem personalizada para Pix pendente */
-    .pix-message {
+    /* Mensagem personalizada para pagamento pendente */
+    .pending-message {
         margin: 0 2rem 2rem 2rem;
         background: linear-gradient(135deg, #e6f7ec 0%, #d1fae5 100%);
         border-left: 4px solid #10b981;
@@ -194,7 +194,7 @@
         animation: slideDown 0.3s ease-out;
         box-shadow: var(--shadow-md);
     }
-    .pix-message-icon {
+    .pending-message-icon {
         flex-shrink: 0;
         width: 48px;
         height: 48px;
@@ -204,22 +204,22 @@
         align-items: center;
         justify-content: center;
     }
-    .pix-message-icon i {
+    .pending-message-icon i {
         font-size: 1.5rem;
         color: white;
     }
-    .pix-message-content h3 {
+    .pending-message-content h3 {
         font-size: 1rem;
         font-weight: 700;
         margin-bottom: 0.25rem;
         color: #065f46;
     }
-    .pix-message-content p {
+    .pending-message-content p {
         margin: 0.25rem 0;
         font-size: 0.9rem;
         color: #065f46;
     }
-    .pix-tip {
+    .pending-tip {
         font-size: 0.8rem;
         color: #047857;
         margin-top: 0.5rem;
@@ -267,7 +267,7 @@
         .payment-brick-wrapper {
             padding: 1rem;
         }
-        .pix-message {
+        .pending-message {
             margin: 1rem;
             flex-direction: column;
             text-align: center;
@@ -317,12 +317,6 @@
                     console.log("Payment Brick ready");
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
-                    // Mostra a mensagem imediatamente se o método for Pix (antes da requisição)
-                    if (selectedPaymentMethod && (selectedPaymentMethod.id === 'pix' || selectedPaymentMethod.type === 'pix')) {
-                        const msgDiv = document.getElementById('pix-pending-message');
-                        if (msgDiv) msgDiv.style.display = 'flex';
-                    }
-
                     const dataToSend = {
                         ...formData,
                         preference_id: preferenceId
@@ -338,20 +332,18 @@
                         })
                         .then(response => response.json())
                         .then(response => {
+                            // Pagamento aprovado instantaneamente (ex: cartão de crédito)
                             if (response.status === 'approved') {
                                 window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
                                 resolve();
                             } 
+                            // Pagamento pendente (Pix, boleto) – exibe a mensagem instrutiva
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Se a mensagem não tiver sido mostrada ainda (por algum motivo), mostra agora
-                                const isPix = (selectedPaymentMethod && (selectedPaymentMethod.id === 'pix' || selectedPaymentMethod.type === 'pix')) ||
-                                              (response.payment_method_id === 'pix');
-                                if (isPix) {
-                                    const msgDiv = document.getElementById('pix-pending-message');
-                                    if (msgDiv) msgDiv.style.display = 'flex';
-                                }
-                                resolve();
+                                const msgDiv = document.getElementById('pending-message');
+                                if (msgDiv) msgDiv.style.display = 'flex';
+                                resolve(); // Mantém o Brick ativo (se houver QR Code, ele ainda aparece)
                             }
+                            // Qualquer outro status (erro, recusado, etc.)
                             else {
                                 alert("Erro ao processar pagamento: " + (response.status || response.error));
                                 reject();
