@@ -78,8 +78,19 @@ def register(request):
 @login_required
 @subscription_required
 def dashboard(request):
+    # Fallback: se o usuário tem um pagamento aprovado mas a assinatura não está ativa, ativa agora
+    profile = request.user.profile
+    if not profile.subscription_active:
+        approved_payment = Payment.objects.filter(user=request.user, status='APPROVED').first()
+        if approved_payment:
+            profile.subscription_active = True
+            profile.plan = approved_payment.plan
+            days = 30 if approved_payment.plan == 'mensal' else (90 if approved_payment.plan == 'trimestral' else 365)
+            profile.subscription_until = datetime.now() + timedelta(days=days)
+            profile.save()
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
     return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
+
 
 
 @require_POST
@@ -752,37 +763,45 @@ def process_payment(request):
 @login_required
 def payment_success(request):
     preference_id = request.GET.get('preference_id')
-    payment_id = request.GET.get('collection_id')
+    payment_id = request.GET.get('collection_id') or request.GET.get('payment_id')
 
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id, user=request.user).first()
-        if payment and payment.status != 'APPROVED':
-            if payment_id:
+        if payment:
+            # Se já estiver aprovado, ativa a assinatura
+            if payment.status == 'APPROVED':
+                # Ativar assinatura se não estiver ativa
+                profile = request.user.profile
+                if not profile.subscription_active:
+                    profile.subscription_active = True
+                    profile.plan = payment.plan
+                    days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
+                    profile.subscription_until = datetime.now() + timedelta(days=days)
+                    profile.save()
+            else:
+                # Consultar status atual no Mercado Pago
+                sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
                 try:
-                    sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-                    payment_info = sdk.payment().get(payment_id)
-                    if payment_info['status'] == 200:
-                        status = payment_info['response'].get('status')
-                        if status == 'approved':
-                            payment.status = 'APPROVED'
-                            payment.payment_id = payment_id
-                            payment.save()
+                    if payment_id:
+                        payment_info = sdk.payment().get(payment_id)
+                        if payment_info['status'] == 200:
+                            status = payment_info['response'].get('status')
+                            if status == 'approved':
+                                payment.status = 'APPROVED'
+                                payment.save()
+                                # Ativar assinatura
+                                profile = request.user.profile
+                                profile.subscription_active = True
+                                profile.plan = payment.plan
+                                days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
+                                profile.subscription_until = datetime.now() + timedelta(days=days)
+                                profile.save()
                 except Exception as e:
                     print("Erro ao consultar pagamento:", e)
 
-            if payment.status != 'APPROVED':
-                payment.status = 'APPROVED'
-                payment.save()
-
-            profile = request.user.profile
-            profile.subscription_active = True
-            profile.plan = payment.plan
-            days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
-            profile.subscription_until = datetime.now() + timedelta(days=days)
-            profile.save()
-
+    # Redireciona para o dashboard após alguns segundos (opcional)
     return render(request, 'nfe/payment_success.html')
-
+    
 
 @login_required
 def payment_failure(request):
