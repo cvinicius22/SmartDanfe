@@ -53,7 +53,10 @@ def home(request):
         has_approved = Payment.objects.filter(user=request.user, status='APPROVED').exists()
         has_pending = Payment.objects.filter(user=request.user, status='PENDING').exists()
         context['has_pending'] = has_pending
-        if has_approved:
+
+        # ✅ CORREÇÃO AQUI
+        profile = request.user.profile
+        if has_approved and profile.subscription_active:
             return redirect('dashboard')
     
     return render(request, 'nfe/plans.html', context)
@@ -78,11 +81,15 @@ def register(request):
 @login_required
 @subscription_required
 def dashboard(request):
-    pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
+    profile = request.user.profile
+    # Verificação extra (já feita no decorator, mas mantém)
+    if profile.subscription_until and profile.subscription_until <= timezone.now():
+        profile.subscription_active = False
+        profile.save()
+        return redirect('home')
     
-    return render(request, 'nfe/dashboard.html', {
-        'pending_payments': pending_payments
-    })
+    pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
+    return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
 
 
 @require_POST
