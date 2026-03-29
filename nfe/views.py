@@ -89,7 +89,7 @@ def dashboard(request):
             profile.subscription_until = datetime.now() + timedelta(days=days)
             profile.save()
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
-
+    return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
 
 
 @require_POST
