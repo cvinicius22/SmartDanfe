@@ -38,7 +38,7 @@
             <div id="paymentBrick_container"></div>
         </div>
 
-        <!-- Mensagem personalizada para pagamento via Pix pendente -->
+        <!-- Mensagem personalizada para pagamento via Pix -->
         <div id="pix-pending-message" class="pix-message" style="display: none;">
             <div class="pix-message-icon">
                 <i class="fas fa-envelope"></i>
@@ -339,8 +339,10 @@
                             } 
                             // Pagamento pendente (Pix, boleto)
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Se for Pix, mostra a mensagem personalizada
-                                if (selectedPaymentMethod && selectedPaymentMethod.id === 'pix') {
+                                // Verifica se o método de pagamento é Pix (pode vir do selectedPaymentMethod ou da resposta)
+                                const isPix = (selectedPaymentMethod && (selectedPaymentMethod.id === 'pix' || selectedPaymentMethod.type === 'pix')) ||
+                                              (response.payment_method_id === 'pix');
+                                if (isPix) {
                                     const msgDiv = document.getElementById('pix-pending-message');
                                     if (msgDiv) msgDiv.style.display = 'flex';
                                 }
