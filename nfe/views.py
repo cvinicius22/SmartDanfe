@@ -78,15 +78,17 @@ def register(request):
 @login_required
 @subscription_required
 def dashboard(request):
+    # Fallback: se o usuário tem um pagamento aprovado mas a assinatura não está ativa, ativa agora
     profile = request.user.profile
-    # Verificação extra (já feita no decorator, mas mantém)
-    if profile.subscription_until and profile.subscription_until <= timezone.now():
-        profile.subscription_active = False
-        profile.save()
-        return redirect('home')
-    
+    if not profile.subscription_active:
+        approved_payment = Payment.objects.filter(user=request.user, status='APPROVED').first()
+        if approved_payment:
+            profile.subscription_active = True
+            profile.plan = approved_payment.plan
+            days = 30 if approved_payment.plan == 'mensal' else (90 if approved_payment.plan == 'trimestral' else 365)
+            profile.subscription_until = datetime.now() + timedelta(days=days)
+            profile.save()
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
-    return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
 
 
 
