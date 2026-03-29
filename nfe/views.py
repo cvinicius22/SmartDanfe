@@ -72,7 +72,7 @@ def register(request):
                 return redirect('home')
     else:
         form = CustomUserCreationForm()
-    return render(request, 'registration/register.html', {'form': form, 'plan': 
+    return render(request, 'registration/register.html', {'form': form, 'plan': plan})
 
 
 @login_required
