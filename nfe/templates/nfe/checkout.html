@@ -317,6 +317,12 @@
                     console.log("Payment Brick ready");
                 },
                 onSubmit: ({ selectedPaymentMethod, formData }) => {
+                    // Mostra a mensagem imediatamente se o método for Pix (antes da requisição)
+                    if (selectedPaymentMethod && (selectedPaymentMethod.id === 'pix' || selectedPaymentMethod.type === 'pix')) {
+                        const msgDiv = document.getElementById('pix-pending-message');
+                        if (msgDiv) msgDiv.style.display = 'flex';
+                    }
+
                     const dataToSend = {
                         ...formData,
                         preference_id: preferenceId
@@ -332,23 +338,20 @@
                         })
                         .then(response => response.json())
                         .then(response => {
-                            // Caso o pagamento seja aprovado instantaneamente (ex: cartão)
                             if (response.status === 'approved') {
                                 window.location.href = "{% url 'payment_success' %}?preference_id=" + preferenceId;
                                 resolve();
                             } 
-                            // Pagamento pendente (Pix, boleto)
                             else if (response.status === 'pending' || response.status === 'in_process') {
-                                // Verifica se o método de pagamento é Pix (pode vir do selectedPaymentMethod ou da resposta)
+                                // Se a mensagem não tiver sido mostrada ainda (por algum motivo), mostra agora
                                 const isPix = (selectedPaymentMethod && (selectedPaymentMethod.id === 'pix' || selectedPaymentMethod.type === 'pix')) ||
                                               (response.payment_method_id === 'pix');
                                 if (isPix) {
                                     const msgDiv = document.getElementById('pix-pending-message');
                                     if (msgDiv) msgDiv.style.display = 'flex';
                                 }
-                                resolve(); // Mantém o Brick ativo para exibir o QR Code
+                                resolve();
                             }
-                            // Qualquer outro status inesperado
                             else {
                                 alert("Erro ao processar pagamento: " + (response.status || response.error));
                                 reject();
