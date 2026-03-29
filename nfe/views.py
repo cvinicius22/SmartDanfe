@@ -78,15 +78,11 @@ def register(request):
 @login_required
 @subscription_required
 def dashboard(request):
-    profile = request.user.profile
-
-    # Só atualiza status, sem redirecionar
-    if profile.subscription_until and profile.subscription_until <= timezone.now():
-        profile.subscription_active = False
-        profile.save()
-
     pending_payments = Payment.objects.filter(user=request.user, status='PENDING').exists()
-    return render(request, 'nfe/dashboard.html', {'pending_payments': pending_payments})
+    
+    return render(request, 'nfe/dashboard.html', {
+        'pending_payments': pending_payments
+    })
 
 
 @require_POST
