@@ -608,36 +608,36 @@ def checkout(request):
 
     external_ref = f"{request.user.id}_{plan.id}"
 
-preference_data = {
-    "items": [{
-        "id": f"plan_{plan.id}",
-        "title": f"SmartDanfe - Plano {plan.name.capitalize()}",
-        "description": f"Assinatura {plan.name.capitalize()} - Download de NF-e em PDF e XML ilimitado",
-        "category_id": "software",
-        "quantity": 1,
-        "currency_id": "BRL",
-        "unit_price": amount,
-        "picture_url": "https://seudominio.com/static/img/logo.png"
-    }],
-    "payer": {
-        "email": request.user.email,
-        "first_name": request.user.first_name or "Cliente",
-        "last_name": request.user.last_name or "",
-    },
-    "payment_methods": {
-        "installments": 1
-    },
-    "back_urls": {
-        "success": success_url,
-        "failure": failure_url,
-        "pending": pending_url,
-    },
-    "auto_return": "approved",
-    "notification_url": notification_url,
-    "external_reference": external_ref,
-    "binary_mode": True,
-    "statement_descriptor": "SMARTDANFE",
-}
+    preference_data = {
+        "items": [{
+            "id": f"plan_{plan.id}",
+            "title": f"SmartDanfe - Plano {plan.name.capitalize()}",
+            "description": f"Assinatura {plan.name.capitalize()} - Download de NF-e em PDF e XML ilimitado",
+            "category_id": "software",
+            "quantity": 1,
+            "currency_id": "BRL",
+            "unit_price": amount,
+            "picture_url": "https://seudominio.com/static/img/logo.png"
+        }],
+        "payer": {
+            "email": request.user.email,
+            "first_name": request.user.first_name or "Cliente",
+            "last_name": request.user.last_name or "",
+        },
+        "payment_methods": {
+            "installments": 1
+        },
+        "back_urls": {
+            "success": success_url,
+            "failure": failure_url,
+            "pending": pending_url,
+        },
+        "auto_return": "approved",
+        "notification_url": notification_url,
+        "external_reference": external_ref,
+        "binary_mode": True,
+        "statement_descriptor": "SMARTDANFE",
+    }
 
     try:
         preference_response = sdk.preference().create(preference_data)
