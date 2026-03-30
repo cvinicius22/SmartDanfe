@@ -40,22 +40,18 @@ def _ativar_assinatura(payment):
     if not profile.subscription_active:
         profile.subscription_active = True
 
-        # Extrai o nome do plano de forma robusta
-        if isinstance(payment.plan, Plan):
-            plan_name = payment.plan.name
-        else:
-            plan_name = str(payment.plan)
-
-        # Normaliza para comparação (ignora maiúsculas/minúsculas)
+        # O nome do plano deve ser um identificador simples (ex: 'mensal', 'trimestral', 'anual')
+        plan_name = payment.plan
         plan_name_lower = plan_name.lower()
-        if 'Trimestral' in plan_name_lower:
+
+        if 'trimestral' in plan_name_lower:
             days = 90
-        elif 'Anual' in plan_name_lower:
+        elif 'anual' in plan_name_lower:
             days = 365
         else:
             days = 30
 
-        profile.plan = plan_name  # guarda o nome original
+        profile.plan = plan_name
         profile.subscription_until = timezone.now() + timedelta(days=days)
         profile.save()
 
@@ -63,7 +59,6 @@ def _ativar_assinatura(payment):
             f"Assinatura ativada para {payment.user.username} até {profile.subscription_until} "
             f"(plano: {plan_name}, dias: {days})"
         )
-
 
 # ──────────────────────────────────────────────────────────────────────────── #
 #  VIEWS PUBLICAS                                                               #
@@ -685,7 +680,7 @@ def checkout(request):
 
     Payment.objects.create(
         user=request.user,
-        plan=plan,
+        plan=plan.name,
         amount=plan.price,
         preference_id=preference_id,
         init_point=init_point,
