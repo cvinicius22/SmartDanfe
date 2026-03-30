@@ -240,7 +240,74 @@
     }
 
     /* =======================================================
-       RESULTADOS – Lista moderna com hover e animação
+       TABELA DE RESULTADOS
+       ======================================================= */
+    .table-responsive {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    .results-table th,
+    .results-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+    }
+    .results-table th {
+        background: var(--gray-50);
+        font-weight: 600;
+        color: var(--gray-700);
+        white-space: nowrap;
+    }
+    .results-table tr:hover {
+        background: var(--gray-50);
+    }
+    .chave-cell {
+        font-family: monospace;
+        font-size: 0.75rem;
+    }
+    .valor-cell {
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+    .actions-cell {
+        white-space: nowrap;
+    }
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1rem;
+        margin: 0 0.2rem;
+        color: var(--gray-600);
+        transition: color 0.2s;
+        padding: 0.25rem;
+    }
+    .btn-icon:hover {
+        color: var(--primary);
+    }
+    .btn-icon.btn-xml:hover {
+        color: var(--success);
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .status-processing { background: #fef3c7; color: #d97706; }
+    .status-success { background: #d1fae5; color: #059669; }
+    .status-error { background: #fee2e2; color: #dc2626; }
+
+    /* =======================================================
+       CARD DE RESULTADOS
        ======================================================= */
     .results-card {
         background: white;
@@ -272,96 +339,6 @@
         font-weight: 600;
         color: var(--gray-600);
     }
-    .results-list {
-        max-height: 450px;
-        overflow-y: auto;
-        margin-bottom: 1.25rem;
-    }
-    .result-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid var(--gray-100);
-        transition: all 0.2s;
-        border-radius: var(--radius-sm);
-    }
-    .result-item:hover {
-        background: var(--gray-50);
-        transform: translateX(4px);
-    }
-    .result-info {
-        flex: 1;
-        overflow: hidden;
-    }
-    .result-key {
-        font-family: 'Fira Code', monospace;
-        font-weight: 600;
-        font-size: 0.8rem;
-        margin-bottom: 0.2rem;
-        color: var(--gray-700);
-        letter-spacing: -0.2px;
-    }
-    .result-details {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    .result-type {
-        background: var(--gray-100);
-        padding: 0.15rem 0.6rem;
-        border-radius: 1rem;
-        font-size: 0.65rem;
-        font-weight: 600;
-        color: var(--gray-600);
-    }
-    .result-status {
-        font-size: 0.65rem;
-        color: var(--gray-500);
-    }
-    .result-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-    .status-badge {
-        padding: 0.2rem 0.7rem;
-        border-radius: 2rem;
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    .status-processing { background: #fef3c7; color: #d97706; }
-    .status-success { background: #d1fae5; color: #059669; }
-    .status-error { background: #fee2e2; color: #dc2626; }
-
-    .download-btn {
-        background: var(--success);
-        border: none;
-        color: white;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: var(--shadow-sm);
-    }
-    .download-btn:hover {
-        transform: scale(1.08);
-        background: var(--success-dark);
-        box-shadow: var(--shadow-md);
-    }
-    .download-btn.xml-btn {
-        background: var(--primary);
-    }
-    .download-btn.xml-btn:hover {
-        background: var(--primary-dark);
-    }
     .card-footer {
         display: flex;
         gap: 1rem;
@@ -369,10 +346,11 @@
         flex-wrap: wrap;
         border-top: 1px solid var(--gray-100);
         padding-top: 1.25rem;
+        margin-top: 1rem;
     }
 
     /* =======================================================
-       LOADING OVERLAY – Suave e elegante
+       LOADING OVERLAY
        ======================================================= */
     .loading-overlay {
         position: fixed;
@@ -405,7 +383,7 @@
     }
 
     /* =======================================================
-       TOAST NOTIFICATIONS – Modernas e responsivas
+       TOAST NOTIFICATIONS
        ======================================================= */
     .toast-container {
         position: fixed;
@@ -417,7 +395,7 @@
         gap: 0.75rem;
     }
     .toast {
-        background: white;
+        background: rgb(252, 252, 252);
         border-left: 4px solid;
         border-radius: var(--radius-md);
         padding: 0.85rem 1rem;
@@ -444,7 +422,7 @@
     }
 
     /* =======================================================
-       RESPONSIVIDADE – Adaptação total
+       RESPONSIVIDADE
        ======================================================= */
     @media (max-width: 1024px) {
         .stats-grid {
@@ -460,14 +438,6 @@
         }
         .charts-grid {
             grid-template-columns: 1fr;
-        }
-        .result-item {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-        }
-        .result-actions {
-            justify-content: center;
         }
         .card-footer {
             justify-content: center;
@@ -488,11 +458,17 @@
             width: 100%;
             min-width: auto;
         }
+        .results-table th,
+        .results-table td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+        .btn-icon {
+            font-size: 1rem;
+        }
     }
 
-    /* =======================================================
-       DETALHES ADICIONAIS – Scrollbar customizada
-       ======================================================= */
+    /* Scrollbar customizada */
     .results-list::-webkit-scrollbar {
         width: 6px;
     }
@@ -503,9 +479,6 @@
     .results-list::-webkit-scrollbar-thumb {
         background: var(--gray-300);
         border-radius: 10px;
-    }
-    .results-list::-webkit-scrollbar-thumb:hover {
-        background: var(--gray-400);
     }
 </style>
 {% endblock %}
@@ -532,7 +505,7 @@
         </div>
     </div>
 
-    <!-- Cards de estatísticas (títulos acima dos valores) -->
+    <!-- Cards de estatísticas -->
     <div class="stats-grid">
         <div class="stat-card stat-total">
             <div class="stat-header">
@@ -580,7 +553,7 @@
         </div>
     </div>
 
-    <!-- Resultados -->
+    <!-- Resultados (tabela) -->
     <div class="results-card">
         <div class="results-header">
             <h2><i class="fas fa-list-check" style="color: var(--primary);"></i> Resultados</h2>
@@ -615,7 +588,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     // =======================================================
-    // Variáveis globais (mantidas da lógica original)
+    // Variáveis globais
     // =======================================================
     let polling = null;
     let statusChart = null;
@@ -704,6 +677,7 @@
     }
 
     async function fetchAndUpdateCharts(nfesOk) {
+        console.log('Atualizando gráficos. NF-es OK com XML:', nfesOk.length);
         const dados = [];
         for (const nfe of nfesOk) {
             try {
@@ -715,18 +689,22 @@
                     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
                     const emitente = xmlDoc.querySelector("emit > xNome")?.textContent || "Desconhecido";
                     const vNF = parseFloat(xmlDoc.querySelector("ICMSTot > vNF")?.textContent || "0");
-                    const dhEmi = xmlDoc.querySelector("ide > dhEmi")?.textContent || null;
-                    dados.push({
-                        chave: nfe.chave,
-                        emitente,
-                        vNF,
-                        dhEmi: dhEmi ? new Date(dhEmi) : null,
-                    });
+                    let dhEmi = xmlDoc.querySelector("ide > dhEmi")?.textContent;
+                    if (dhEmi) {
+                        const anoMes = dhEmi.substring(0, 7);
+                        dados.push({
+                            chave: nfe.chave,
+                            emitente,
+                            vNF,
+                            anoMes: anoMes
+                        });
+                    }
                 }
             } catch (err) {
                 console.error(`Erro ao processar XML da nota ${nfe.chave}:`, err);
             }
         }
+        console.log('Dados extraídos:', dados);
 
         if (statusChart) statusChart.destroy();
         if (timelineChart) timelineChart.destroy();
@@ -746,28 +724,41 @@
             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
         });
 
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            last7Days.push(d.toISOString().split('T')[0]);
-        }
-        const countsByDay = last7Days.map(day => dados.filter(d => d.dhEmi && d.dhEmi.toISOString().split('T')[0] === day).length);
+        const monthlyMap = new Map();
+        dados.forEach(d => {
+            const mes = d.anoMes;
+            monthlyMap.set(mes, (monthlyMap.get(mes) || 0) + 1);
+        });
+        const mesesOrdenados = Array.from(monthlyMap.keys()).sort();
+        const labels = mesesOrdenados.map(mes => {
+            const [ano, mesNum] = mes.split('-');
+            return `${mesNum}/${ano}`;
+        });
+        const counts = mesesOrdenados.map(mes => monthlyMap.get(mes));
+
         const timelineCtx = document.getElementById('timelineChart').getContext('2d');
         timelineChart = new Chart(timelineCtx, {
             type: 'line',
             data: {
-                labels: last7Days.map(d => d.split('-').slice(1).join('/')),
+                labels: labels,
                 datasets: [{
                     label: 'Notas emitidas',
-                    data: countsByDay,
+                    data: counts,
                     borderColor: '#0ea5e9',
                     backgroundColor: 'rgba(14,165,233,0.1)',
                     tension: 0.3,
                     fill: true
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.raw} nota(s)` } }
+                },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
+            }
         });
 
         const emitentesMap = new Map();
@@ -785,7 +776,22 @@
                     borderRadius: 8
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
         });
     }
 
@@ -806,36 +812,75 @@
             document.getElementById('download-all').disabled = true;
             return;
         }
-        let html = '';
+
+        let html = `
+            <div class="table-responsive">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Chave</th>
+                            <th>Emitente</th>
+                            <th>CNPJ</th>
+                            <th>Nº NF</th>
+                            <th>Série</th>
+                            <th>Valor Total</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
         nfes.forEach(n => {
-            let statusClass = 'status-processing', statusText = 'PROCESSANDO', action = '';
+            const chaveShort = n.chave.substring(0,10) + '...' + n.chave.substring(34);
+            let statusBadge = '';
+            let statusText = '';
+            let actions = '';
             if (n.status === 'OK') {
-                statusClass = 'status-success';
+                statusBadge = 'status-success';
                 statusText = 'PRONTO';
-                action = `
-                    <button class="download-btn" onclick="downloadPDF('${n.chave}')" title="Baixar PDF"><i class="fas fa-file-pdf"></i></button>
-                    ${n.xml_disponivel ? `<button class="download-btn xml-btn" onclick="downloadXML('${n.chave}')" title="Baixar XML"><i class="fas fa-file-code"></i></button>` : ''}
+                actions = `
+                    <button class="btn-icon" onclick="downloadPDF('${n.chave}')" title="Baixar PDF"><i class="fas fa-file-pdf"></i></button>
+                    ${n.xml_disponivel ? `<button class="btn-icon btn-xml" onclick="downloadXML('${n.chave}')" title="Baixar XML"><i class="fas fa-file-code"></i></button>` : ''}
                 `;
+            } else if (n.status === 'PROCESSING') {
+                statusBadge = 'status-processing';
+                statusText = 'PROCESSANDO';
             } else if (n.status === 'ERROR') {
-                statusClass = 'status-error';
+                statusBadge = 'status-error';
                 statusText = 'ERRO';
+            } else {
+                statusBadge = 'status-processing';
+                statusText = n.status;
             }
+
+            let valorDisplay = '—';
+            if (n.valor_total && !isNaN(parseFloat(n.valor_total))) {
+                valorDisplay = `R$ ${parseFloat(n.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            } else if (n.valor_total && n.valor_total !== '0') {
+                valorDisplay = `R$ ${n.valor_total}`;
+            }
+
             html += `
-                <div class="result-item">
-                    <div class="result-info">
-                        <div class="result-key">${n.chave.substring(0,10)}...${n.chave.substring(34)}</div>
-                        <div class="result-details">
-                            <span class="result-type">${n.tipo || 'NF-e'}</span>
-                            <span class="result-status">${n.mensagem || n.status}</span>
-                        </div>
-                    </div>
-                    <div class="result-actions">
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                        ${action}
-                    </div>
-                </div>
+                <tr>
+                    <td class="chave-cell">${escapeHtml(chaveShort)}</td>
+                    <td>${escapeHtml(n.emitente_nome || '—')}</td>
+                    <td>${escapeHtml(n.emitente_cnpj || '—')}</td>
+                    <td>${escapeHtml(n.numero_nf || '—')}</td>
+                    <td>${escapeHtml(n.serie || '—')}</td>
+                    <td class="valor-cell">${valorDisplay}</td>
+                    <td><span class="status-badge ${statusBadge}">${statusText}</span></td>
+                    <td class="actions-cell">${actions}</td>
+                </tr>
             `;
         });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
         resultsDiv.innerHTML = html;
         document.getElementById('download-all').disabled = (ready === 0);
     }
