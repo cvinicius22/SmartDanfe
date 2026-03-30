@@ -260,6 +260,39 @@
             background: rgba(255, 255, 255, 0.15);
             transform: translateY(-2px);
         }
+        /* ===== BOTÃO FLUTUANTE WHATSAPP ===== */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #25d366;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .whatsapp-float:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+        .whatsapp-float a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-decoration: none;
+            color: white;
+        }
+        .whatsapp-float i {
+            font-size: 32px;
+        }
         /* ===== RESPONSIVIDADE ===== */
         @media (max-width: 768px) {
             .main-header {
@@ -283,6 +316,15 @@
             }
             .badge i {
                 font-size: 1rem;
+            }
+            .whatsapp-float {
+                width: 50px;
+                height: 50px;
+                bottom: 15px;
+                right: 15px;
+            }
+            .whatsapp-float i {
+                font-size: 28px;
             }
         }
         @media (max-width: 480px) {
@@ -383,6 +425,14 @@
             </div>
         </div>
     </footer>
+
+    <!-- Botão flutuante do WhatsApp -->
+    <div class="whatsapp-float">
+        <a href="https://wa.me/5524993029437?text=Olá! Gostaria de mais informações sobre o SmartDanfe." target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
+
     <script>
         function getCookie(name) {
             let value = null;
