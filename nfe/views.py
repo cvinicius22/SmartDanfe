@@ -39,14 +39,12 @@ def _ativar_assinatura(payment):
         profile.subscription_active = True
         profile.plan = payment.plan
 
-        # 🔥 GARANTE que sempre pega o nome corretamente
-        plan_name = payment.plan.name if hasattr(payment.plan, 'name') else str(payment.plan)
+        # 🔥 NORMALIZA STRING (RESOLVE 100%)
+        plan_name = str(payment.plan).lower().strip()
 
-        plan_name = plan_name.lower().strip()  # evita erro de comparação
-
-        if plan_name == 'Trimestral':
+        if plan_name == 'trimestral':
             days = 90
-        elif plan_name == 'Anual':
+        elif plan_name == 'anual':
             days = 365
         else:
             days = 30
