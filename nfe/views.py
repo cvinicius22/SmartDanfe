@@ -770,6 +770,25 @@ def process_payment(request):
         logger.exception("Erro ao processar pagamento")
         return JsonResponse({'error': str(e)}, status=500)
 
+def _ativar_assinatura(payment):
+    """Ativa a assinatura do usuário com base no plano do pagamento."""
+    try:
+        profile = payment.user.profile
+    except UserProfile.DoesNotExist:
+        profile = UserProfile.objects.create(user=payment.user)
+
+    if not profile.subscription_active:
+        profile.subscription_active = True
+        profile.plan = payment.plan
+        plan_name = payment.plan.name if isinstance(payment.plan, Plan) else payment.plan
+        if plan_name == 'trimestral':
+            days = 90
+        elif plan_name == 'anual':
+            days = 365
+        else:
+            days = 30
+        profile.subscription_until = datetime.now() + timedelta(days=days)
+        profile.save()
 
 @login_required
 def payment_success(request):
@@ -779,38 +798,46 @@ def payment_success(request):
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id, user=request.user).first()
         if payment:
+            # Já aprovado no banco — ativa e vai pro dashboard
             if payment.status == 'APPROVED':
-                profile = request.user.profile
-                if not profile.subscription_active:
-                    profile.subscription_active = True
-                    profile.plan = payment.plan
-                    days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
-                    profile.subscription_until = datetime.now() + timedelta(days=days)
-                    profile.save()
-                return redirect('dashboard')  # ✅ vai direto
+                _ativar_assinatura(payment)
+                return redirect('dashboard')
 
-            else:
-                sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-                try:
+            # Ainda pendente — consulta a API do MP para confirmar
+            sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+            try:
+                # Tenta pelo payment_id da URL primeiro
+                mp_status = None
+                if payment_id:
+                    info = sdk.payment().get(payment_id)
+                    if info['status'] == 200:
+                        mp_status = info['response'].get('status')
+
+                # Se não veio payment_id na URL, busca pela preferência
+                if not mp_status:
+                    search = sdk.payment().search({
+                        "filters": {"preference_id": preference_id}
+                    })
+                    if search['status'] == 200:
+                        results = search['response'].get('results', [])
+                        if results:
+                            mp_status = results[0].get('status')
+                            payment_id = results[0].get('id')
+
+                if mp_status == 'approved':
+                    payment.status = 'APPROVED'
                     if payment_id:
-                        payment_info = sdk.payment().get(payment_id)
-                        if payment_info['status'] == 200:
-                            status = payment_info['response'].get('status')
-                            if status == 'approved':
-                                payment.status = 'APPROVED'
-                                payment.save()
-                                profile = request.user.profile
-                                profile.subscription_active = True
-                                profile.plan = payment.plan
-                                days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
-                                profile.subscription_until = datetime.now() + timedelta(days=days)
-                                profile.save()
-                                return redirect('dashboard')  # ✅ vai direto
-                except Exception as e:
-                    print("Erro ao consultar pagamento:", e)
+                        payment.payment_id = payment_id
+                    payment.save()
+                    _ativar_assinatura(payment)
+                    return redirect('dashboard')
 
-    # Só cai aqui se não confirmou — aí mostra a tela e tem link pro histórico
+            except Exception as e:
+                logger.error(f"Erro ao consultar pagamento no MP: {e}")
+
+    # Não conseguiu confirmar — mostra tela de sucesso com botão pro dashboard
     return render(request, 'nfe/payment_success.html')
+
 
 @login_required
 def payment_failure(request):
