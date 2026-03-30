@@ -182,6 +182,7 @@ def nfe_status(request):
     nfes = NFe.objects.filter(user=request.user).order_by('-created_at')
     data = []
     for nfe in nfes:
+        # (código existente para tentar baixar PDF/XML, se necessário)
         if nfe.status == 'PROCESSING' and not nfe.pdf_base64:
             pdf_data = baixar_pdf(nfe.chave_acesso)
             if pdf_data and pdf_data.get('data'):
@@ -200,7 +201,9 @@ def nfe_status(request):
                 nfe.xml_text = xml_data['data']
                 nfe.mensagem = 'PDF e XML disponíveis'
                 nfe.save()
-        data.append({
+
+        # Dados básicos (sempre presentes)
+        item = {
             'chave': nfe.chave_acesso,
             'status': nfe.status,
             'tipo': nfe.tipo,
@@ -208,9 +211,55 @@ def nfe_status(request):
             'pdf_disponivel': bool(nfe.pdf_base64),
             'xml_disponivel': bool(nfe.xml_text),
             'created_at': nfe.created_at.isoformat(),
-        })
-    return JsonResponse({'nfes': data})
+            # Campos extras (inicialmente vazios)
+            'emitente_nome': '',
+            'emitente_cnpj': '',
+            'numero_nf': '',
+            'serie': '',
+            'valor_total': '0.00',
+        }
 
+        # Se a nota está OK e tem XML, extrai os dados adicionais
+        if nfe.status == 'OK' and nfe.xml_text:
+            try:
+                root = ET.fromstring(nfe.xml_text)
+                ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
+
+                infNFe = root.find('.//nfe:infNFe', ns)
+                if infNFe is not None:
+                    # Emitente
+                    emit = infNFe.find('nfe:emit', ns)
+                    if emit is not None:
+                        xNome = emit.find('nfe:xNome', ns)
+                        if xNome is not None:
+                            item['emitente_nome'] = xNome.text
+                        cnpj = emit.find('nfe:CNPJ', ns)
+                        if cnpj is not None:
+                            item['emitente_cnpj'] = cnpj.text
+
+                    # Número e série da NF
+                    ide = infNFe.find('nfe:ide', ns)
+                    if ide is not None:
+                        nNF = ide.find('nfe:nNF', ns)
+                        if nNF is not None:
+                            item['numero_nf'] = nNF.text
+                        serie = ide.find('nfe:serie', ns)
+                        if serie is not None:
+                            item['serie'] = serie.text
+
+                    # Valor total
+                    total = infNFe.find('.//nfe:ICMSTot', ns)
+                    if total is not None:
+                        vNF = total.find('nfe:vNF', ns)
+                        if vNF is not None:
+                            item['valor_total'] = vNF.text
+
+            except Exception as e:
+                logger.error(f"Erro ao extrair dados do XML da nota {nfe.chave_acesso}: {e}")
+
+        data.append(item)
+
+    return JsonResponse({'nfes': data})
 
 @require_GET
 @login_required
