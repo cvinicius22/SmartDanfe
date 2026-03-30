@@ -787,7 +787,7 @@ def payment_success(request):
                     days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
                     profile.subscription_until = datetime.now() + timedelta(days=days)
                     profile.save()
-                return redirect('dashboard')  # ✅ redireciona direto
+                return redirect('dashboard')  # ✅ vai direto
 
             else:
                 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
@@ -805,13 +805,12 @@ def payment_success(request):
                                 days = 30 if payment.plan == 'mensal' else (90 if payment.plan == 'trimestral' else 365)
                                 profile.subscription_until = datetime.now() + timedelta(days=days)
                                 profile.save()
-                                return redirect('dashboard')  # ✅ redireciona direto
+                                return redirect('dashboard')  # ✅ vai direto
                 except Exception as e:
                     print("Erro ao consultar pagamento:", e)
 
-    # Só cai aqui se não conseguiu confirmar o pagamento
+    # Só cai aqui se não confirmou — aí mostra a tela e tem link pro histórico
     return render(request, 'nfe/payment_success.html')
-    
 
 @login_required
 def payment_failure(request):
