@@ -54,7 +54,6 @@ def home(request):
         has_pending = Payment.objects.filter(user=request.user, status='PENDING').exists()
         context['has_pending'] = has_pending
 
-        # ✅ CORREÇÃO AQUI
         profile = request.user.profile
         if has_approved and profile.subscription_active:
             return redirect('dashboard')
@@ -82,7 +81,6 @@ def register(request):
 @subscription_required
 def dashboard(request):
     profile = request.user.profile
-    # Verificação extra (já feita no decorator, mas mantém)
     if profile.subscription_until and profile.subscription_until <= timezone.now():
         profile.subscription_active = False
         profile.save()
@@ -212,7 +210,6 @@ def clear_all(request):
 def relatorio_excel(request):
     nfes = NFe.objects.filter(user=request.user, status='OK', xml_text__isnull=False).order_by('-created_at')
     
-    # Listas para armazenar os dados
     notas_resumo = []
     itens = []
     xml_completo = []
@@ -227,12 +224,10 @@ def relatorio_excel(request):
             root = ET.fromstring(nfe.xml_text)
             ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
             
-            # Dados da nota (infNFe)
             infNFe = root.find('.//nfe:infNFe', ns)
             if infNFe is None:
                 continue
             
-            # Ide (identificação)
             ide = infNFe.find('nfe:ide', ns)
             if ide is not None:
                 serie = ide.find('nfe:serie', ns).text if ide.find('nfe:serie', ns) is not None else ''
@@ -247,7 +242,6 @@ def relatorio_excel(request):
             else:
                 serie = nNF = dhEmi = dhSaiEnt = natOp = finNFe = tpNF = cNF = verProc = ''
             
-            # Emitente
             emit = infNFe.find('nfe:emit', ns)
             if emit is not None:
                 emit_nome = emit.find('nfe:xNome', ns).text if emit.find('nfe:xNome', ns) is not None else ''
@@ -263,7 +257,6 @@ def relatorio_excel(request):
             else:
                 emit_nome = emit_cnpj = emit_ie = emit_uf = emit_mun = emit_cep = ''
             
-            # Destinatário
             dest = infNFe.find('nfe:dest', ns)
             if dest is not None:
                 dest_nome = dest.find('nfe:xNome', ns).text if dest.find('nfe:xNome', ns) is not None else ''
@@ -280,7 +273,6 @@ def relatorio_excel(request):
             else:
                 dest_nome = dest_cnpj = dest_ie = dest_email = dest_uf = dest_mun = dest_cep = ''
             
-            # Transporte
             transp = infNFe.find('nfe:transp', ns)
             modFrete = ''
             vol_qVol = ''
@@ -294,7 +286,6 @@ def relatorio_excel(request):
                     vol_pesoB = vol.find('nfe:pesoB', ns).text if vol.find('nfe:pesoB', ns) is not None else ''
                     vol_pesoL = vol.find('nfe:pesoL', ns).text if vol.find('nfe:pesoL', ns) is not None else ''
             
-            # Totais (ICMSTot)
             total = infNFe.find('.//nfe:ICMSTot', ns)
             if total is not None:
                 vProd = total.find('nfe:vProd', ns).text if total.find('nfe:vProd', ns) is not None else '0'
@@ -313,7 +304,6 @@ def relatorio_excel(request):
             else:
                 vProd = vNF = vICMS = vIPI = vPIS = vCOFINS = vFCP = vFCPST = vST = vDesc = vFrete = vSeg = vOutro = '0'
             
-            # Pagamento
             pag = infNFe.find('.//nfe:detPag', ns)
             if pag is not None:
                 tPag = pag.find('nfe:tPag', ns).text if pag.find('nfe:tPag', ns) is not None else ''
@@ -321,7 +311,6 @@ def relatorio_excel(request):
             else:
                 tPag = vPag = ''
             
-            # Duplicatas (se houver)
             dup = infNFe.find('.//nfe:dup', ns)
             if dup is not None:
                 nDup = dup.find('nfe:nDup', ns).text if dup.find('nfe:nDup', ns) is not None else ''
@@ -330,7 +319,6 @@ def relatorio_excel(request):
             else:
                 nDup = dVenc = vDup = ''
             
-            # Dados da nota para resumo
             notas_resumo.append({
                 'Chave': nfe.chave_acesso,
                 'Série': serie,
@@ -379,13 +367,11 @@ def relatorio_excel(request):
                 'Valor Duplicata (R$)': vDup,
             })
             
-            # Processa os itens
             for det in root.findall('.//nfe:det', ns):
                 prod = det.find('nfe:prod', ns)
                 if prod is None:
                     continue
                 
-                # Dados do produto
                 cProd = prod.find('nfe:cProd', ns).text if prod.find('nfe:cProd', ns) is not None else ''
                 xProd = prod.find('nfe:xProd', ns).text if prod.find('nfe:xProd', ns) is not None else ''
                 NCM = prod.find('nfe:NCM', ns).text if prod.find('nfe:NCM', ns) is not None else ''
@@ -396,13 +382,11 @@ def relatorio_excel(request):
                 vUnCom = prod.find('nfe:vUnCom', ns).text if prod.find('nfe:vUnCom', ns) is not None else ''
                 vProd = prod.find('nfe:vProd', ns).text if prod.find('nfe:vProd', ns) is not None else ''
                 
-                # Impostos do item
                 imposto = det.find('nfe:imposto', ns)
                 ICMS = None
                 if imposto is not None:
                     ICMS = imposto.find('.//nfe:ICMS', ns)
                 
-                # Extraindo valores do ICMS (pode ser ICMS00, ICMS10, ICMS40, etc.)
                 vICMS_item = '0'
                 pICMS_item = '0'
                 vBC_item = '0'
@@ -414,7 +398,6 @@ def relatorio_excel(request):
                             vBC_item = child.find('nfe:vBC', ns).text if child.find('nfe:vBC', ns) is not None else '0'
                             break
                 
-                # IPI
                 IPI = imposto.find('nfe:IPI', ns) if imposto is not None else None
                 vIPI_item = '0'
                 if IPI is not None:
@@ -422,7 +405,6 @@ def relatorio_excel(request):
                     if ipiTrib is not None:
                         vIPI_item = ipiTrib.find('nfe:vIPI', ns).text if ipiTrib.find('nfe:vIPI', ns) is not None else '0'
                 
-                # PIS
                 PIS = imposto.find('nfe:PIS', ns) if imposto is not None else None
                 vPIS_item = '0'
                 if PIS is not None:
@@ -434,7 +416,6 @@ def relatorio_excel(request):
                         if pisNT is not None:
                             vPIS_item = '0'
                 
-                # COFINS
                 COFINS = imposto.find('nfe:COFINS', ns) if imposto is not None else None
                 vCOFINS_item = '0'
                 if COFINS is not None:
@@ -465,11 +446,9 @@ def relatorio_excel(request):
                 })
                 
         except Exception as e:
-            # Se falhar, adiciona erro nas listas
             notas_resumo.append({'Chave': nfe.chave_acesso, 'Erro no processamento': str(e)})
             itens.append({'Chave NF-e': nfe.chave_acesso, 'Erro no processamento': str(e)})
     
-    # Cria DataFrames
     df_notas = pd.DataFrame(notas_resumo) if notas_resumo else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
     df_itens = pd.DataFrame(itens) if itens else pd.DataFrame({'Mensagem': ['Nenhum item encontrado.']})
     df_xml = pd.DataFrame(xml_completo) if xml_completo else pd.DataFrame({'Mensagem': ['Nenhuma NF-e com XML disponível.']})
@@ -481,7 +460,6 @@ def relatorio_excel(request):
         df_itens.to_excel(writer, index=False, sheet_name='Itens Notas')
         df_xml.to_excel(writer, index=False, sheet_name='XML Completo')
         
-        # Ajuste de largura das colunas para cada planilha
         for sheet_name in ['Resumo Notas', 'Itens Notas', 'XML Completo']:
             worksheet = writer.sheets[sheet_name]
             for column in worksheet.columns:
@@ -492,11 +470,11 @@ def relatorio_excel(request):
                         max_len = max(max_len, len(str(cell.value)))
                 adjusted_width = min(max_len + 2, 50)
                 worksheet.column_dimensions[col_letter].width = adjusted_width
-            # Para a planilha XML, a coluna do XML pode ser maior
             if sheet_name == 'XML Completo':
                 worksheet.column_dimensions['B'].width = 80
     
     return response
+
 
 @login_required
 def stats(request):
@@ -564,7 +542,6 @@ def checkout(request):
         else:
             return redirect('home')
 
-    # Novo plano
     if not plan_name:
         return redirect('home')
 
@@ -606,37 +583,67 @@ def checkout(request):
             'message': 'URLs de retorno inválidas. Verifique as rotas.'
         })
 
-    external_ref = f"{request.user.id}_{plan.id}"
+    # ------------------------------------------------------------------ #
+    # Referência única por usuário + plano + timestamp (evita duplicatas) #
+    # ------------------------------------------------------------------ #
+    external_ref = f"{request.user.id}_{plan.id}_{int(datetime.now().timestamp())}"
+
+    # Determina vigência da preferência (48h a partir de agora)
+    expiration_from = datetime.utcnow()
+    expiration_to   = expiration_from + timedelta(hours=48)
 
     preference_data = {
+        # ── Itens ──────────────────────────────────────────────────────── #
         "items": [{
-            "id": f"plan_{plan.id}",
-            "title": f"SmartDanfe - Plano {plan.name.capitalize()}",
-            "description": f"Assinatura {plan.name.capitalize()} - Download de NF-e em PDF e XML ilimitado",
-            "category_id": "software",
-            "quantity": 1,
+            "id": f"plan_{plan.id}",                                        # items.id
+            "title": f"SmartDanfe - Plano {plan.name.capitalize()}",        # items.title
+            "description": (
+                f"Assinatura {plan.name.capitalize()} - "
+                "Download de NF-e em PDF e XML ilimitado"
+            ),                                                               # items.description
+            "category_id": "software",                                      # items.category_id
+            "quantity": 1,                                                  # items.quantity
             "currency_id": "BRL",
-            "unit_price": amount,
-            "picture_url": "https://seudominio.com/static/img/logo.png"
+            "unit_price": amount,                                           # items.unit_price
+            "picture_url": f"{public_url}/static/img/logo.png",
         }],
+
+        # ── Pagador ────────────────────────────────────────────────────── #
         "payer": {
-            "email": request.user.email,
-            "first_name": request.user.first_name or "Cliente",
-            "last_name": request.user.last_name or "",
+            "email": request.user.email,                                    # payer.email (obrigatório)
+            "first_name": request.user.first_name or "",                    # payer.first_name
+            "last_name": request.user.last_name or "",                      # payer.last_name
         },
+
+        # ── Métodos de pagamento ───────────────────────────────────────── #
         "payment_methods": {
-            "installments": 1
+            "installments": 1,                                              # installments
         },
+
+        # ── URLs de retorno ────────────────────────────────────────────── #
         "back_urls": {
-            "success": success_url,
+            "success": success_url,                                         # back_urls
             "failure": failure_url,
             "pending": pending_url,
         },
         "auto_return": "approved",
-        "notification_url": notification_url,
-        "external_reference": external_ref,
-        "binary_mode": True,
-        "statement_descriptor": "SMARTDANFE",
+
+        # ── Notificações ───────────────────────────────────────────────── #
+        "notification_url": notification_url,                               # notification_url
+
+        # ── Conciliação ────────────────────────────────────────────────── #
+        "external_reference": external_ref,                                 # external_reference
+
+        # ── Aprovação ──────────────────────────────────────────────────── #
+        "binary_mode": True,                                                # binary_mode
+
+        # ── Fatura do cartão ───────────────────────────────────────────── #
+        "statement_descriptor": "SMARTDANFE",                              # statement_descriptor
+
+        # ── Vigência da preferência (48 h) ─────────────────────────────── #
+        "expires": True,
+        "expiration_date_from": expiration_from.strftime("%Y-%m-%dT%H:%M:%S.000-03:00"),
+        "expiration_date_to":   expiration_to.strftime("%Y-%m-%dT%H:%M:%S.000-03:00"),
     }
 
     try:
@@ -696,6 +703,8 @@ def process_payment(request):
 
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
+    payer = data.get("payer", {})
+
     payment_data = {
         "transaction_amount": data.get("transaction_amount"),
         "token": data.get("token"),
@@ -703,14 +712,14 @@ def process_payment(request):
         "installments": data.get("installments", 1),
         "payment_method_id": data.get("payment_method_id"),
         "payer": {
-            "email": data.get("payer", {}).get("email"),
-            "identification": data.get("payer", {}).get("identification", {}),
-            "first_name": data.get("payer", {}).get("first_name"),
-            "last_name": data.get("payer", {}).get("last_name"),
+            "email": payer.get("email"),
+            "identification": payer.get("identification", {}),
+            "first_name": payer.get("first_name"),
+            "last_name": payer.get("last_name"),
         }
     }
 
-    payer_address = data.get("payer", {}).get("address")
+    payer_address = payer.get("address")
     if payer_address:
         payment_data["payer"]["address"] = {
             "zip_code": payer_address.get("zip_code"),
@@ -723,6 +732,7 @@ def process_payment(request):
 
     def clean_dict(d):
         return {k: v for k, v in d.items() if v is not None}
+
     payment_data = clean_dict(payment_data)
     payment_data["payer"] = clean_dict(payment_data.get("payer", {}))
     if "identification" in payment_data["payer"]:
@@ -760,6 +770,7 @@ def process_payment(request):
         logger.exception("Erro ao processar pagamento")
         return JsonResponse({'error': str(e)}, status=500)
 
+
 @login_required
 def payment_success(request):
     preference_id = request.GET.get('preference_id')
@@ -768,9 +779,7 @@ def payment_success(request):
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id, user=request.user).first()
         if payment:
-            # Se já estiver aprovado, ativa a assinatura
             if payment.status == 'APPROVED':
-                # Ativar assinatura se não estiver ativa
                 profile = request.user.profile
                 if not profile.subscription_active:
                     profile.subscription_active = True
@@ -779,7 +788,6 @@ def payment_success(request):
                     profile.subscription_until = datetime.now() + timedelta(days=days)
                     profile.save()
             else:
-                # Consultar status atual no Mercado Pago
                 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
                 try:
                     if payment_id:
@@ -789,7 +797,6 @@ def payment_success(request):
                             if status == 'approved':
                                 payment.status = 'APPROVED'
                                 payment.save()
-                                # Ativar assinatura
                                 profile = request.user.profile
                                 profile.subscription_active = True
                                 profile.plan = payment.plan
@@ -799,7 +806,6 @@ def payment_success(request):
                 except Exception as e:
                     print("Erro ao consultar pagamento:", e)
 
-    # Redireciona para o dashboard após alguns segundos (opcional)
     return render(request, 'nfe/payment_success.html')
 
 
@@ -820,7 +826,6 @@ def payment_webhook(request):
 
     print("=== WEBHOOK CHAMADO ===")
 
-    # --- Validação de assinatura (opcional) ---
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     query_params = urllib.parse.parse_qs(request.GET.urlencode())
@@ -845,7 +850,6 @@ def payment_webhook(request):
             print("Falha na validação da assinatura")
             return JsonResponse({'status': 'ok'})
 
-    # --- Processa o corpo da notificação ---
     try:
         data = json.loads(request.body)
         print("Dados recebidos:", data)
@@ -860,7 +864,6 @@ def payment_webhook(request):
     payment_id = data['data']['id']
     print(f"Payment ID recebido: {payment_id}")
 
-    # --- Consulta os detalhes do pagamento no Mercado Pago ---
     sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
     try:
         payment_info = sdk.payment().get(payment_id)
@@ -877,14 +880,11 @@ def payment_webhook(request):
         print("Erro ao consultar pagamento na API:", e)
         return JsonResponse({'status': 'ok'})
 
-    # --- Busca o pagamento no banco de dados (prioridades) ---
     payment = None
-    # 1. Busca por preference_id (único)
     if preference_id:
         payment = Payment.objects.filter(preference_id=preference_id).first()
         if payment:
             print(f"Encontrado por preference_id: {payment.id}")
-    # 2. Busca por external_reference (pendente, mais recente)
     if not payment and external_reference:
         payments = Payment.objects.filter(
             external_reference=external_reference,
@@ -893,7 +893,6 @@ def payment_webhook(request):
         if payments.exists():
             payment = payments.first()
             print(f"Encontrado por external_reference: {payment.id}")
-    # 3. Busca por payment_id (se já tiver sido salvo)
     if not payment and payment_id:
         payment = Payment.objects.filter(payment_id=payment_id).first()
         if payment:
@@ -903,14 +902,12 @@ def payment_webhook(request):
         print("Pagamento não encontrado no banco!")
         return JsonResponse({'status': 'ok'})
 
-    # --- Atualiza o status ---
     print(f"Status anterior: {payment.status}")
     payment.status = status.upper()
     payment.payment_id = payment_id
     payment.save()
     print(f"Status atualizado para: {payment.status}")
 
-    # --- Ativa a assinatura se aprovado ---
     if status == 'approved':
         try:
             profile = payment.user.profile
@@ -920,7 +917,6 @@ def payment_webhook(request):
 
         profile.subscription_active = True
         profile.plan = payment.plan
-        # Define a validade conforme o plano
         if payment.plan == 'mensal':
             days = 30
         elif payment.plan == 'trimestral':
