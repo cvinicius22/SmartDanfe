@@ -44,9 +44,9 @@ def _ativar_assinatura(payment):
 
         plan_name = plan_name.lower().strip()  # evita erro de comparação
 
-        if plan_name == 'trimestral':
+        if plan_name == 'Trimestral':
             days = 90
-        elif plan_name == 'anual':
+        elif plan_name == 'Anual':
             days = 365
         else:
             days = 30
