@@ -30,26 +30,31 @@ logger = logging.getLogger(__name__)
 #  AUXILIAR — evita duplicação de código em payment_success e payment_webhook  #
 # ──────────────────────────────────────────────────────────────────────────── #
 def _ativar_assinatura(payment):
-    """Ativa a assinatura do usuário com base no plano do pagamento."""
     try:
         profile = payment.user.profile
     except UserProfile.DoesNotExist:
         profile = UserProfile.objects.create(user=payment.user)
-        logger.info(f"Perfil criado automaticamente para {payment.user.username}")
 
     if not profile.subscription_active:
         profile.subscription_active = True
         profile.plan = payment.plan
-        plan_name = payment.plan.name if isinstance(payment.plan, Plan) else payment.plan
+
+        # 🔥 GARANTE que sempre pega o nome corretamente
+        plan_name = payment.plan.name if hasattr(payment.plan, 'name') else str(payment.plan)
+
+        plan_name = plan_name.lower().strip()  # evita erro de comparação
+
         if plan_name == 'trimestral':
             days = 90
         elif plan_name == 'anual':
             days = 365
         else:
             days = 30
-        profile.subscription_until = datetime.now() + timedelta(days=days)
+
+        profile.subscription_until = timezone.now() + timedelta(days=days)
         profile.save()
-        logger.info(f"Assinatura ativada para {payment.user.username} ate {profile.subscription_until}")
+
+        logger.info(f"Plano: {plan_name} | Dias: {days}")
 
 
 # ──────────────────────────────────────────────────────────────────────────── #
