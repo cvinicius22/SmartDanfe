@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H5STTDNLHN"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    
-      gtag('config', 'G-H5STTDNLHN');
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="SmartDanfe - Converta chaves de NF-e em PDF e XML com facilidade. Plataforma segura com integração Mercado Pago.">
@@ -272,8 +263,8 @@
         /* ===== BOTÃO FLUTUANTE WHATSAPP ===== */
         .whatsapp-float {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 28px;
+            right: 28px;
             z-index: 1000;
             background-color: #25d366;
             border-radius: 50%;
@@ -302,7 +293,291 @@
         .whatsapp-float i {
             font-size: 32px;
         }
-        /* ===== RESPONSIVIDADE ===== */
+
+        /* ===== CHATBOT WIDGET - POSICIONAMENTO CORRIGIDO ===== */
+        #chat-bubble {
+            position: fixed;
+            bottom: 108px;
+            right: 28px;
+            width: 62px;
+            height: 62px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10000;
+            box-shadow: 0 6px 24px rgba(14,165,233,0.45);
+            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+            animation: bubblePop 0.5s cubic-bezier(.34,1.56,.64,1) 1.5s both;
+        }
+        @keyframes bubblePop {
+            from { transform: scale(0); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        #chat-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 28px rgba(14,165,233,0.55);
+        }
+        #chat-bubble svg {
+            width: 27px;
+            height: 27px;
+            color: white;
+        }
+        #chat-unread-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            animation: badgePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%,100% { transform: scale(1); }
+            50%      { transform: scale(1.2); }
+        }
+        #chat-window {
+            position: fixed;
+            bottom: 184px;
+            right: 28px;
+            width: 360px;
+            max-height: 540px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            z-index: 9999;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            transform: scale(0.85) translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transform-origin: bottom right;
+            transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.25s ease;
+        }
+        #chat-window.open {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+        #chat-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            color: white;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        #chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #chat-avatar {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        #chat-title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        #chat-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        #chat-status-dot {
+            width: 7px;
+            height: 7px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: statusPulse 2s ease infinite;
+        }
+        @keyframes statusPulse {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.35; }
+        }
+        #chat-close-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #chat-close-btn:hover { background: rgba(255,255,255,0.22); }
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+        }
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .chat-msg { display: flex; }
+        .chat-msg.bot { justify-content: flex-start; }
+        .chat-msg.user { justify-content: flex-end; }
+        .chat-bubble-msg {
+            max-width: 82%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+        .chat-msg.bot .chat-bubble-msg {
+            background: #f0f9ff;
+            border: 1px solid #e0f2fe;
+            border-bottom-left-radius: 4px;
+            color: #1e293b;
+        }
+        .chat-msg.user .chat-bubble-msg {
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border-bottom-right-radius: 4px;
+            color: white;
+        }
+        #chat-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .chat-suggestion {
+            background: white;
+            border: 1.5px solid #bae6fd;
+            color: #0284c7;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.18s;
+        }
+        .chat-suggestion:hover {
+            background: #0ea5e9;
+            color: white;
+            border-color: #0ea5e9;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 12px 14px;
+        }
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: typingBounce 1.2s ease infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%,80%,100% { transform: translateY(0); opacity: 0.5; }
+            40%          { transform: translateY(-6px); opacity: 1; }
+        }
+        #chat-input-area {
+            padding: 12px 14px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            flex-shrink: 0;
+            background: white;
+        }
+        #chat-input {
+            flex: 1;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 9px 13px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            resize: none;
+            outline: none;
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.45;
+            transition: border-color 0.2s;
+            color: #1e293b;
+        }
+        #chat-input:focus { border-color: #0ea5e9; }
+        #chat-send-btn {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #chat-send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(14,165,233,0.4);
+        }
+        #chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        @media (max-width: 420px) {
+            .whatsapp-float {
+                bottom: 16px;
+                right: 16px;
+                width: 50px;
+                height: 50px;
+            }
+            .whatsapp-float i { font-size: 28px; }
+            #chat-bubble {
+                bottom: 82px;
+                right: 16px;
+                width: 52px;
+                height: 52px;
+            }
+            #chat-window {
+                width: calc(100vw - 24px);
+                right: 12px;
+                bottom: 148px;
+            }
+        }
+
+        /* ===== RESPONSIVIDADE GERAL ===== */
         @media (max-width: 768px) {
             .main-header {
                 flex-direction: column;
@@ -326,15 +601,6 @@
             .badge i {
                 font-size: 1rem;
             }
-            .whatsapp-float {
-                width: 50px;
-                height: 50px;
-                bottom: 15px;
-                right: 15px;
-            }
-            .whatsapp-float i {
-                font-size: 28px;
-            }
         }
         @media (max-width: 480px) {
             .logo-text h1 {
@@ -356,16 +622,9 @@
                 font-size: 0.8rem;
             }
         }
-        /* ===== ANIMAÇÕES GLOBAIS ===== */
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         main {
             animation: fadeIn 0.5s ease-out;
@@ -409,9 +668,11 @@
             {% endif %}
         </div>
     </header>
+
     <main>
         {% block content %}{% endblock %}
     </main>
+
     <footer class="app-footer">
         <div class="footer-content">
             <div class="footer-main">
@@ -419,7 +680,7 @@
                 <p>Transforme suas notas fiscais eletrônicas em PDF e XML com facilidade e segurança.</p>
                 <p class="footer-email">
                     <i class="fas fa-envelope"></i> 
-                    <a href="mailto:smartdanfe@gmail.com">smartdanfe@gmail.com</a>
+                    <a href="mailto:logistechinsights@gmail.com">logistechinsights@gmail.com</a>
                 </p>
             </div>
             <div class="footer-badges">
@@ -442,7 +703,200 @@
         </a>
     </div>
 
+    <!-- CHATBOT WIDGET - Estrutura HTML (sem mensagens estáticas) -->
+    <div id="chat-bubble" onclick="toggleChat()" title="Fale com nosso assistente">
+        <svg id="chat-icon-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <svg id="chat-icon-close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        <span id="chat-unread-badge">1</span>
+    </div>
+
+    <div id="chat-window">
+        <div id="chat-header">
+            <div id="chat-header-info">
+                <div id="chat-avatar">SD</div>
+                <div>
+                    <div id="chat-title">Assistente SmartDanfe</div>
+                    <div id="chat-status"><span id="chat-status-dot"></span> Online agora</div>
+                </div>
+            </div>
+            <button id="chat-close-btn" onclick="toggleChat()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="18" height="18">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <!-- NENHUM CONTEÚDO ESTÁTICO AQUI -->
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <textarea id="chat-input" placeholder="Digite sua dúvida..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button id="chat-send-btn" onclick="sendMessage()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
     <script>
+        // ==================== CHATBOT APENAS COM IA (GROQ) - SEM SAUDAÇÃO AUTOMÁTICA ====================
+        (function() {
+            let isOpen = false;
+            let isLoading = false;
+            const messageHistory = [];
+
+            const chatMessages = document.getElementById('chat-messages');
+
+            function appendMsg(role, text) {
+                const wrapper = document.createElement('div');
+                wrapper.className = `chat-msg ${role}`;
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble-msg';
+                bubble.innerHTML = formatText(text);
+                wrapper.appendChild(bubble);
+                chatMessages.appendChild(wrapper);
+                scrollToBottom();
+                return wrapper;
+            }
+
+            function appendTyping() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'chat-msg bot';
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble-msg';
+                bubble.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+                wrapper.appendChild(bubble);
+                chatMessages.appendChild(wrapper);
+                scrollToBottom();
+                return wrapper;
+            }
+
+            function formatText(text) {
+                return text
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            function scrollToBottom() {
+                setTimeout(() => chatMessages.scrollTop = chatMessages.scrollHeight, 50);
+            }
+
+            function sendMsg(text) {
+                appendMsg('user', text);
+                messageHistory.push({ role: 'user', content: text });
+                const typingEl = appendTyping();
+                isLoading = true;
+                const sendBtn = document.getElementById('chat-send-btn');
+                if (sendBtn) sendBtn.disabled = true;
+
+                fetch('/chatbot/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: messageHistory }),
+                })
+                .then(r => r.json())
+                .then(data => {
+                    typingEl.remove();
+                    const reply = data.reply || '❌ Não consegui processar sua mensagem. Tente novamente.';
+                    const botMsg = appendMsg('bot', reply);
+                    messageHistory.push({ role: 'assistant', content: reply });
+                })
+                .catch(() => {
+                    typingEl.remove();
+                    appendMsg('bot', '❌ Erro de conexão. Verifique sua internet e tente novamente, ou fale conosco pelo WhatsApp.');
+                })
+                .finally(() => {
+                    isLoading = false;
+                    if (sendBtn) sendBtn.disabled = false;
+                });
+            }
+
+            // Adiciona as sugestões rápidas (mas apenas se o usuário não tiver enviado nada ainda)
+            function addSuggestions() {
+                const suggestionsDiv = document.createElement('div');
+                suggestionsDiv.id = 'chat-suggestions';
+                const suggestions = [
+                    { text: 'Como funciona?', query: 'Como funciona o SmartDanfe?' },
+                    { text: 'Ver planos', query: 'Quais são os planos disponíveis?' },
+                    { text: 'Baixar PDF', query: 'Como faço para baixar o PDF da NF-e?' },
+                    { text: 'Pagamento', query: 'Como é feito o pagamento?' }
+                ];
+                suggestions.forEach(sug => {
+                    const btn = document.createElement('button');
+                    btn.className = 'chat-suggestion';
+                    btn.textContent = sug.text;
+                    btn.onclick = () => {
+                        suggestionsDiv.style.display = 'none';
+                        sendMsg(sug.query);
+                    };
+                    suggestionsDiv.appendChild(btn);
+                });
+                chatMessages.appendChild(suggestionsDiv);
+            }
+
+            // Inicializa o chat SEM mensagem de boas-vindas
+            function initChat() {
+                addSuggestions(); // apenas os botões de sugestão
+            }
+
+            // Funções globais
+            window.toggleChat = function() {
+                isOpen = !isOpen;
+                const win = document.getElementById('chat-window');
+                const iconOpen = document.getElementById('chat-icon-open');
+                const iconClose = document.getElementById('chat-icon-close');
+                const badge = document.getElementById('chat-unread-badge');
+
+                win.classList.toggle('open', isOpen);
+                if (iconOpen) iconOpen.style.display = isOpen ? 'none' : 'block';
+                if (iconClose) iconClose.style.display = isOpen ? 'block' : 'none';
+                if (isOpen) {
+                    if (badge) badge.style.display = 'none';
+                    document.getElementById('chat-input').focus();
+                }
+            };
+
+            window.sendSuggestion = function(text) {
+                const suggestions = document.getElementById('chat-suggestions');
+                if (suggestions) suggestions.style.display = 'none';
+                sendMsg(text);
+            };
+
+            window.handleKey = function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            };
+
+            window.autoResize = function(el) {
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+            };
+
+            window.sendMessage = function() {
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (!text || isLoading) return;
+                input.value = '';
+                input.style.height = 'auto';
+                sendMsg(text);
+            };
+
+            // Inicializa
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initChat);
+            } else {
+                initChat();
+            }
+        })();
+
+        // ==================== LOGOUT ====================
         function getCookie(name) {
             let value = null;
             if (document.cookie && document.cookie !== '') {
