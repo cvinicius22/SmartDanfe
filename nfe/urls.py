@@ -18,4 +18,6 @@ urlpatterns = [
     path('payment/pending/', views.payment_pending, name='payment_pending'),
     path('payment/webhook/', views.payment_webhook, name='payment_webhook'),
     path('payment-history/', views.payment_history, name='payment_history'),
+    path('payment-status/<str:payment_id>/', views.payment_status, name='payment_status'),
+    
 ]
