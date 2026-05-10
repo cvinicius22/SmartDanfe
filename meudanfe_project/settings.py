@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
-import dj_database_url
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,18 +80,12 @@ WSGI_APPLICATION = 'meudanfe_project.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
-# Desabilitar prepared statements para compatibilidade com transaction pooler
-if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
-    DATABASES['default']['OPTIONS'] = {
-        'options': '-c prepared_statements=off'
-    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -132,7 +124,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 MERCADOPAGO_ACCESS_TOKEN = config('MERCADOPAGO_ACCESS_TOKEN')
 MERCADOPAGO_PUBLIC_KEY = config('MERCADOPAGO_PUBLIC_KEY')
 MERCADOPAGO_WEBHOOK_SECRET = config('MERCADOPAGO_WEBHOOK_SECRET')
-PUBLIC_URL = config('PUBLIC_URL', default='')
+PUBLIC_URL = config('PUBLIC_URL', default='http://localhost:8000')
 
 # Celery (opcional, mas mantemos)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='memory://')
@@ -141,3 +133,4 @@ CELERY_TASK_ALWAYS_EAGER = not bool(config('CELERY_BROKER_URL', default=''))
 
 # API do MeuDanfe
 API_KEY = config('API_KEY')
+GROQ_API_KEY = config('GROQ_API_KEY', default='')
