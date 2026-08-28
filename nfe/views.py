@@ -21,6 +21,8 @@ from .decorators import subscription_required
 import hashlib
 import hmac
 import urllib.parse
+import io
+import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -1230,4 +1232,20 @@ def chatbot_groq(request):
     except Exception as e:
         logger.exception("Erro no chatbot")
         return JsonResponse({'error': 'Ocorreu um erro interno. Tente novamente ou fale conosco pelo WhatsApp.'}, status=500)
- 
+
+@login_required
+def download_all_pdfs(request):
+    nfes = NFe.objects.filter(user=request.user, status='OK', pdf_base64__isnull=False)
+    if not nfes.exists():
+        return HttpResponse('Nenhum PDF disponível', status=404)
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for nfe in nfes:
+            pdf_bytes = base64.b64decode(nfe.pdf_base64)
+            zip_file.writestr(f'{nfe.chave_acesso}.pdf', pdf_bytes)
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="notas_fiscais.zip"'
+    return response
