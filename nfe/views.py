@@ -1215,7 +1215,7 @@ def chatbot_groq(request):
         )
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 *messages
