@@ -491,7 +491,7 @@
             <i class="fas fa-keyboard" style="color: var(--primary); font-size: 1.2rem;"></i>
             <h2 style="font-size: 1.1rem; font-weight: 700;">Inserir Chaves de Acesso</h2>
         </div>
-        <p class="text-sm text-gray-500" style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 0.75rem;">Digite as chaves (44 dígitos) – uma por linha ou separadas por vírgula</p>
+        <p class="text-sm text-gray-500" style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 0.75rem;">Digite as chaves (44 dígitos) – uma por linha ou separadas por vírgula. Pode digitar tudo junto ou em blocos separados por espaço (ex: 4326 0888 3797 ...).</p>
         <textarea id="keys" rows="4" placeholder="Exemplo:
 35210707364617000186550010000012341000012345
 35210707364617000186550010000012351000012346"></textarea>
@@ -629,9 +629,30 @@
         overlay.style.display = show ? 'flex' : 'none';
     }
 
+    // =======================================================
+    // Extração e normalização das chaves digitadas
+    // Aceita:
+    //   - Chaves "coladas" (44 dígitos seguidos)
+    //   - Chaves separadas em blocos por espaço (ex: "4326 0888 3797 ...")
+    //   - Múltiplas chaves separadas por linha ou vírgula
+    // =======================================================
+    function extractKeys(rawText) {
+        // Primeiro separa por quebras de linha e vírgulas — esses SIM
+        // indicam o fim de uma chave e o início de outra.
+        const chunks = rawText.split(/[\n,]+/);
+
+        const keys = chunks
+            .map(chunk => chunk.replace(/\s+/g, ''))  // remove espaços internos (blocos de 4 em 4)
+            .map(chunk => chunk.trim())
+            .filter(chunk => chunk.length > 0);
+
+        // Valida que cada item resultante tem exatamente 44 dígitos
+        return keys.filter(k => /^[0-9]{44}$/.test(k));
+    }
+
     async function processKeys() {
         const text = document.getElementById('keys').value.trim();
-        const keys = text.split(/[^0-9]+/).filter(k => /^[0-9]{44}$/.test(k));
+        const keys = extractKeys(text);
         if (keys.length === 0) {
             showToast('Insira pelo menos uma chave válida (44 dígitos).', 'warning');
             return;
