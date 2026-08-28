@@ -6,6 +6,7 @@ urlpatterns = [
     path('api/process-keys/', views.process_keys, name='process_keys'),
     path('api/nfe-status/', views.nfe_status, name='nfe_status'),
     path('api/download-pdf/<str:chave>/', views.download_pdf, name='download_pdf'),
+    path('api/download-all-pdf/', views.download_all_pdfs, name='download_all_pdfs'),
     path('api/download-xml/<str:chave>/', views.download_xml, name='download_xml'),
     path('api/relatorio-excel/', views.relatorio_excel, name='relatorio_excel'),
     path('api/clear-all/', views.clear_all, name='clear_all'),
