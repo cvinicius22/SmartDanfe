@@ -269,6 +269,78 @@
     .chave-cell {
         font-family: monospace;
         font-size: 0.75rem;
+        white-space: nowrap;
+        user-select: all;
+    }
+
+    /* =======================================================
+       BARRA DE FILTROS
+       ======================================================= */
+    .filters-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .filter-search-group {
+        position: relative;
+        flex: 1 1 260px;
+        min-width: 220px;
+    }
+    .filter-search-group i {
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+        font-size: 0.85rem;
+    }
+    .filter-search-group input {
+        width: 100%;
+        padding: 0.6rem 0.9rem 0.6rem 2.3rem;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        background: var(--gray-50);
+        transition: var(--transition);
+    }
+    .filter-search-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+        background: white;
+    }
+    .filter-select {
+        padding: 0.6rem 0.9rem;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        background: var(--gray-50);
+        color: var(--gray-700);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+        background: white;
+    }
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+    @media (max-width: 768px) {
+        .filters-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-search-group {
+            flex: 1 1 auto;
+        }
     }
     .valor-cell {
         font-weight: 600;
@@ -559,6 +631,22 @@
             <h2><i class="fas fa-list-check" style="color: var(--primary);"></i> Resultados</h2>
             <span class="results-badge" id="results-count">0 chaves</span>
         </div>
+        <div class="filters-bar">
+            <div class="filter-search-group">
+                <i class="fas fa-search"></i>
+                <input type="text" id="filter-search" placeholder="Buscar por chave, emitente, CNPJ ou nº NF...">
+            </div>
+            <select id="filter-status" class="filter-select">
+                <option value="">Todos os status</option>
+                <option value="OK">Pronto</option>
+                <option value="PROCESSING">Processando</option>
+                <option value="WAITING">Aguardando</option>
+                <option value="ERROR">Erro</option>
+            </select>
+            <button id="filter-clear-btn" class="btn btn-secondary btn-sm">
+                <i class="fas fa-filter-circle-xmark"></i> Limpar filtros
+            </button>
+        </div>
         <div id="results" class="results-list"></div>
         <div class="card-footer">
             <button id="download-all" class="btn btn-primary" disabled>
@@ -594,6 +682,15 @@
     let statusChart = null;
     let timelineChart = null;
     let emitentesChart = null;
+
+    // Cache dos dados já extraídos de cada XML (chave -> {emitente, vNF, anoMes}).
+    // Evita baixar e reprocessar o mesmo XML a cada ciclo de polling.
+    const xmlDataCache = {};
+
+    // Última lista completa de NF-es recebida da API (sem filtro aplicado).
+    // Os filtros de busca/status são aplicados sobre esta lista, sem precisar
+    // buscar de novo no servidor a cada digitação.
+    let allNfes = [];
 
     function getCookie(name) {
         let cookieValue = null;
@@ -689,18 +786,27 @@
         try {
             const resp = await fetch("{% url 'nfe_status' %}");
             const data = await resp.json();
-            updateUI(data.nfes);
-            const nfesOk = data.nfes.filter(n => n.status === 'OK' && n.xml_disponivel);
-            await fetchAndUpdateCharts(nfesOk);
+            allNfes = data.nfes;
+            const nfesOk = allNfes.filter(n => n.status === 'OK' && n.xml_disponivel);
+
+            // Baixa e processa apenas os XMLs que ainda não estão em cache.
+            await loadXmlDataForNfes(nfesOk);
+
+            updateStats(allNfes);
+            updateCharts(nfesOk);
+            renderResults();
+            maybeStopPolling(allNfes);
         } catch (e) {
             console.error('Erro ao buscar status', e);
         }
     }
 
-    async function fetchAndUpdateCharts(nfesOk) {
-        console.log('Atualizando gráficos. NF-es OK com XML:', nfesOk.length);
-        const dados = [];
-        for (const nfe of nfesOk) {
+    // Busca o XML apenas das notas cuja chave ainda não está no cache.
+    async function loadXmlDataForNfes(nfesOk) {
+        const pendentes = nfesOk.filter(n => !xmlDataCache[n.chave]);
+        if (pendentes.length === 0) return;
+
+        await Promise.all(pendentes.map(async (nfe) => {
             try {
                 const xmlUrl = "{% url 'download_xml' 'CHAVE_PLACEHOLDER' %}".replace('CHAVE_PLACEHOLDER', nfe.chave);
                 const xmlResp = await fetch(xmlUrl);
@@ -710,22 +816,38 @@
                     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
                     const emitente = xmlDoc.querySelector("emit > xNome")?.textContent || "Desconhecido";
                     const vNF = parseFloat(xmlDoc.querySelector("ICMSTot > vNF")?.textContent || "0");
-                    let dhEmi = xmlDoc.querySelector("ide > dhEmi")?.textContent;
-                    if (dhEmi) {
-                        const anoMes = dhEmi.substring(0, 7);
-                        dados.push({
-                            chave: nfe.chave,
-                            emitente,
-                            vNF,
-                            anoMes: anoMes
-                        });
-                    }
+                    const dhEmi = xmlDoc.querySelector("ide > dhEmi")?.textContent || '';
+                    const anoMes = dhEmi ? dhEmi.substring(0, 7) : '';
+                    xmlDataCache[nfe.chave] = { emitente, vNF, anoMes };
                 }
             } catch (err) {
                 console.error(`Erro ao processar XML da nota ${nfe.chave}:`, err);
             }
+        }));
+    }
+
+    // Interrompe o polling quando não houver mais notas em WAITING/PROCESSING.
+    function maybeStopPolling(nfes) {
+        const hasPending = nfes.some(n => n.status === 'WAITING' || n.status === 'PROCESSING');
+        if (!hasPending && polling) {
+            clearInterval(polling);
+            polling = null;
         }
-        console.log('Dados extraídos:', dados);
+    }
+
+    function updateCharts(nfesOk) {
+        const dados = [];
+        nfesOk.forEach(nfe => {
+            const cached = xmlDataCache[nfe.chave];
+            if (cached && cached.anoMes) {
+                dados.push({
+                    chave: nfe.chave,
+                    emitente: cached.emitente,
+                    vNF: cached.vNF,
+                    anoMes: cached.anoMes
+                });
+            }
+        });
 
         if (statusChart) statusChart.destroy();
         if (timelineChart) timelineChart.destroy();
@@ -816,21 +938,58 @@
         });
     }
 
-    function updateUI(nfes) {
+    // Atualiza apenas os cards de estatística no topo (sempre com base em
+    // TODAS as notas, independente dos filtros aplicados na tabela).
+    function updateStats(nfes) {
         const total = nfes.length;
         const ready = nfes.filter(n => n.status === 'OK').length;
         const processing = nfes.filter(n => n.status === 'PROCESSING').length;
         document.getElementById('total').innerText = total;
         document.getElementById('ready').innerText = ready;
         document.getElementById('processing').innerText = processing;
-        document.getElementById('results-count').innerText = `${total} ${total === 1 ? 'chave' : 'chaves'}`;
         const readyNfes = nfes.filter(n => n.status === 'OK' && n.xml_disponivel);
         updateTotalValue(readyNfes);
+        document.getElementById('download-all').disabled = (ready === 0);
+    }
 
+    // Aplica o texto de busca e o filtro de status sobre allNfes.
+    function getFilteredNfes() {
+        const searchTerm = document.getElementById('filter-search').value.trim().toLowerCase();
+        const statusFilter = document.getElementById('filter-status').value;
+
+        return allNfes.filter(n => {
+            if (statusFilter && n.status !== statusFilter) return false;
+            if (searchTerm) {
+                const haystack = [
+                    n.chave,
+                    n.emitente_nome,
+                    n.emitente_cnpj,
+                    n.numero_nf
+                ].filter(Boolean).join(' ').toLowerCase();
+                if (!haystack.includes(searchTerm)) return false;
+            }
+            return true;
+        });
+    }
+
+    // Renderiza a tabela de resultados aplicando os filtros atuais.
+    function renderResults() {
         const resultsDiv = document.getElementById('results');
-        if (nfes.length === 0) {
+        const badge = document.getElementById('results-count');
+
+        if (allNfes.length === 0) {
+            badge.innerText = '0 chaves';
             resultsDiv.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--gray-400);"><i class="fas fa-file-circle-question" style="font-size:2rem;margin-bottom:0.5rem;"></i><p>Nenhuma chave processada</p></div>`;
-            document.getElementById('download-all').disabled = true;
+            return;
+        }
+
+        const filtradas = getFilteredNfes();
+        badge.innerText = filtradas.length === allNfes.length
+            ? `${allNfes.length} ${allNfes.length === 1 ? 'chave' : 'chaves'}`
+            : `${filtradas.length} de ${allNfes.length} chaves`;
+
+        if (filtradas.length === 0) {
+            resultsDiv.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--gray-400);"><i class="fas fa-filter-circle-xmark" style="font-size:2rem;margin-bottom:0.5rem;"></i><p>Nenhum resultado para os filtros aplicados</p></div>`;
             return;
         }
 
@@ -852,8 +1011,7 @@
                     <tbody>
         `;
 
-        nfes.forEach(n => {
-            const chaveShort = n.chave.substring(0,10) + '...' + n.chave.substring(34);
+        filtradas.forEach(n => {
             let statusBadge = '';
             let statusText = '';
             let actions = '';
@@ -884,7 +1042,7 @@
 
             html += `
                 <tr>
-                    <td class="chave-cell">${escapeHtml(chaveShort)}</td>
+                    <td class="chave-cell">${escapeHtml(n.chave)}</td>
                     <td>${escapeHtml(n.emitente_nome || '—')}</td>
                     <td>${escapeHtml(n.emitente_cnpj || '—')}</td>
                     <td>${escapeHtml(n.numero_nf || '—')}</td>
@@ -903,24 +1061,14 @@
         `;
 
         resultsDiv.innerHTML = html;
-        document.getElementById('download-all').disabled = (ready === 0);
     }
 
-    async function updateTotalValue(readyNfes) {
+    function updateTotalValue(readyNfes) {
         let totalValue = 0;
-        for (const nfe of readyNfes) {
-            try {
-                const xmlUrl = "{% url 'download_xml' 'CHAVE_PLACEHOLDER' %}".replace('CHAVE_PLACEHOLDER', nfe.chave);
-                const xmlResp = await fetch(xmlUrl);
-                if (xmlResp.ok) {
-                    const xmlText = await xmlResp.text();
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-                    const vNF = parseFloat(xmlDoc.querySelector("ICMSTot > vNF")?.textContent || "0");
-                    totalValue += vNF;
-                }
-            } catch (err) { console.error(err); }
-        }
+        readyNfes.forEach(nfe => {
+            const cached = xmlDataCache[nfe.chave];
+            if (cached) totalValue += cached.vNF;
+        });
         document.getElementById('total-value').innerHTML = `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     }
 
@@ -967,8 +1115,12 @@
         });
         if (result.isConfirmed) {
             await fetch("{% url 'clear_all' %}", { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
-            fetchStatus();
+            Object.keys(xmlDataCache).forEach(k => delete xmlDataCache[k]);
+            allNfes = [];
             document.getElementById('keys').value = '';
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-status').value = '';
+            startPolling();
             showToast('Todos os resultados foram limpos.', 'success');
         }
     }
@@ -977,6 +1129,17 @@
         document.getElementById('process-btn').addEventListener('click', processKeys);
         document.getElementById('clear-btn').addEventListener('click', clearAll);
         document.getElementById('download-all').addEventListener('click', downloadAll);
+
+        // Filtros da tabela de resultados — reaplicam sobre os dados já
+        // carregados (allNfes), sem precisar buscar de novo no servidor.
+        document.getElementById('filter-search').addEventListener('input', renderResults);
+        document.getElementById('filter-status').addEventListener('change', renderResults);
+        document.getElementById('filter-clear-btn').addEventListener('click', () => {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-status').value = '';
+            renderResults();
+        });
+
         fetchStatus();
         startPolling();
     });
